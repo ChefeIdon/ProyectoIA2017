@@ -13,33 +13,39 @@ escribirFrontera(nodo(ID,CostoCamino,Camino,Heuristica)):-
 escribirNodos(IDNodo):-
     write(IDNodo),write(',').
 
-
+%Selecciona el primer nodo
 seleccionar(Nodo,[Nodo|RestoFrontera],RestoFrontera).
 
-
+%Elimina el primer nodo de una lista (frontera)
 eliminarNodoInicial([_NodoInicial|RestoFrontera],RestoFrontera).
 
-
+%Obtiene los vecinos de un nodo
 generarVecinos(IDNodo,Vecinos):-
     node(IDNodo,_Pos,Vecinos).
 
 
+% Ordena una lista de distancias (que son las heuristicas de un nodo a
+% las metas)
+obtenerDistancias(_VectorNodo,[],[]).
+
 ordenarDistancias(DistanciasDesordenadas,DistanciasOrdenadas):-
     quick_sortNumeros(DistanciasDesordenadas,DistanciasOrdenadas).
 
-obtenerDistancias(_VectorNodo,[],[]).
-
+% Obtiene las distancias de un nodo a todos los nodos que tienen un
+% tesoro (metas) que son las heuristicas
 obtenerDistancias(VectorNodo,[IDNodoMeta|RestoNodosMeta],[Distancia|RestoDistancias]):-
     node(IDNodoMeta,VectorMeta,_Ady),
     distance(VectorNodo,VectorMeta,Distancia),
     obtenerDistancias(VectorNodo,RestoNodosMeta,RestoDistancias).
 
+%Obtiene la mejor
 calcularHeuristica(IDNodo,MenorDistancia):-
     node(IDNodo,VectorNodo,_Ady),
     findall(IDNodoMeta,at([gold,_Nombre],IDNodoMeta),IDNodosMeta),
     obtenerDistancias(VectorNodo,IDNodosMeta,Distancias),
     ordenarDistancias(Distancias,[MenorDistancia|_RestoDistancia]).
 
+%Ordena una cantidad
 ordenar_por_f(FronteraDesordenada,FronteraOrdenada):-
     quick_sortNodos(FronteraDesordenada,FronteraOrdenada).
 
