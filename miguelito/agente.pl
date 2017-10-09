@@ -105,7 +105,9 @@ decide_action(Action):-
 % Solicita la registración al juego, y recuerda su nombre.
 
 
-start_ag:- AgName = miguelito,
+start_ag:-
+      set_prolog_stack(global, limit(512000000)),
+      AgName = miguelito,
            agent_init(AgName),
            assert(ag_name(AgName)),
 		   agent_reset,
@@ -127,6 +129,7 @@ s:- start_ag.
 
 
 start_ag_instance(InstanceID):-
+      set_prolog_stack(global, limit(512000000)),
                     AgClassName = template,
                     AgInstanceName =.. [AgClassName, InstanceID],
 		    agent_init(AgInstanceName),

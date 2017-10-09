@@ -54,7 +54,7 @@ decide_action(Action):-
 	at([agent, me], MyNode),
 	at([gold, GName], MyNode),
 	write('DA| Encontré un tesoro: '), write(GName), write('!'),
-        write('voy a intentar tomarlo...'),nl,
+        write(' voy a intentar tomarlo...'),nl,
         Action = pickup([gold, GName]).
 
 decide_action(Action):-
@@ -105,7 +105,9 @@ decide_action(Action):-
 % Solicita la registración al juego, y recuerda su nombre.
 
 
-start_ag:- AgName = miguelito,
+start_ag:-
+      set_prolog_stack(global, limit(512000000)),
+      AgName = miguelito,
            agent_init(AgName),
            assert(ag_name(AgName)),
 		   agent_reset,
