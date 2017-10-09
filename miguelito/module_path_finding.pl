@@ -136,12 +136,12 @@ invertirYCrearPlan([Destino|RestoCamino],Plan,Destino):-
 %
 %
 %Hacer: Usar un planificador para satisfacer varias metas.
-buscar_plan_desplazamiento(Metas, Plan, Destino):-
+buscar_plan_desplazamiento(Metas, RestoPlan, Destino):-
     %write('Entre a buscar_plan_desplazamiento'),nl,
-    write('Voy a generar un plan... Las metas son:'),write(Metas),nl,
+    write('  BPD| Los nodos metas son:'),write(Metas),nl,
 
     at([agent,me],IDNodoActual),
-    %write('BPD| Estoy en el nodo: '),write(IDNodoActual),nl,
+    write('  BPD| Estoy en el nodo: '),write(IDNodoActual),nl,
 
     generarVecinos(IDNodoActual,Vecinos),
     %write('BPD| Genere los vecinos del nodo actual: ['),
@@ -158,7 +158,7 @@ buscar_plan_desplazamiento(Metas, Plan, Destino):-
     %write('BPD| Elimine el nodo inicial'),nl,
 
 
-    write('BPD| LLAMO POR PRIMERA VEZ A BUSQUEDA A*'),nl,
+    %write('BPD| LLAMO POR PRIMERA VEZ A BUSQUEDA A*'),nl,
     %write('BPD| Con frontera inicial: '),nl,
     %forall(member(UnNodo,FronteraOrdenadaSinInicial),escribirFrontera(UnNodo)),nl,
 
@@ -166,9 +166,10 @@ buscar_plan_desplazamiento(Metas, Plan, Destino):-
 
     %write('BPD| Salgo de Busqueda A* con camino a meta: '),write(CaminoAMeta),nl,
 
-    invertirYCrearPlan(CaminoAMeta,Plan,Destino),
+    invertirYCrearPlan(CaminoAMeta,[_PrimerMove|RestoPlan],Destino),
 
-    write('BPD| El plan es: '),write(Plan),write(' | Destino:'),write(Destino),nl.
+    write('  BPD| El plan es: '),write(RestoPlan),nl,
+    write('  BPD| Destino:'),write(Destino),nl.
 
 %    forall(member(Nodo,Camino),append(move(Nodo),Plan)),
 
@@ -186,9 +187,9 @@ busquedaAEstrella(Metas,nodo(IDNodoActual,_Cc,PlanAnterior,_H),_Frontera,_Visita
     %write('  A*| Es el nodo actual una meta?'),nl,
     member(IDNodoActual,Metas),
     append([IDNodoActual],PlanAnterior,Plan),
-    write('  A*| LLEGUE A UNA METAAAA!!!'),
+    write('    A*| LLEGUE A UNA META!'),nl.
     %write('  A*| Nodo meta: '),write(IDNodoActual),write(' Metas: '),write(Metas),
-    write(' Camino hacia meta: '),write(Plan),nl.
+    %write(' Camino hacia meta: '),write(Plan),nl.
 
 
 busquedaAEstrella(Metas,_IDNodoActual,Frontera,Visitados,Plan):-

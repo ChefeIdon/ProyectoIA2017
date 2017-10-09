@@ -46,16 +46,16 @@ run:-
 decide_action(Action):-
       plan([Action|RestoPlan]),
       retractall(plan(_)),
-      write('Estoy ejecutando un plan, la accion que voy a tomar es:'), write(Action),nl,
+      write('DA| Estoy ejecutando un plan, la accion que voy a tomar es:'), write(Action),nl,
+      write('DA| El resto del plan: '),write(RestoPlan),nl,
       assert(plan(RestoPlan)).
 
 decide_action(Action):-
 	at([agent, me], MyNode),
 	at([gold, GName], MyNode),
-	write('Encontré un tesoro: '), write(GName), write('!!!'),nl,
-        write('voy a intentar tomarlo...'),nl,
-        Action = pickup([gold, GName]),
-        retractall(at([gold,GName],_Nodo)).
+	write('DA| Encontré un tesoro: '), write(GName), write('!'),
+        write(' voy a intentar tomarlo...'),nl,
+        Action = pickup([gold, GName]).
 
 decide_action(Action):-
 	atPos([agent, me], MyPos),
@@ -64,22 +64,25 @@ decide_action(Action):-
 	property([agent, Target], life, TLife),
 	TLife > 0,
 	pos_in_attack_range(MyPos, TPos),
+        write('DA| Hay un enemigo cerca! voy a intentar atacarlo...'),nl,
 	Action = attack([agent, Target]).
 
 decide_action(Action):-
-      write('Decido Accion| Voy a buscar los tesoros que conozco'),nl,
+      write('DA| Voy a buscar los tesoros que conozco'),nl,
       findall(Node,at([gold,_NombreOro],Node),NodosMeta),
       buscar_plan_desplazamiento(NodosMeta,[Action|RestoPlan],Destino),
+      write('DA| Encontre un plan para llegar al nodo: '),write(Destino),nl,
+      write('DA| Mi siguiente accion es: '),write(Action),nl,
       assert(plan(RestoPlan)).
-      %write('Decido Accion| Sali de BPD con Plan: '),write(RestoPlan),nl,
-      %write('Decido Accion| Destino: '),write(Destino),nl.
+
+
 
 
 decide_action(Action):-
       at([agent, me], MyNode),
       findall(Node, ady(MyNode, Node), PossibleDestNodes),
       random_member(DestNode, PossibleDestNodes), % Selecciona aleatoriamente una posición destino.
-      write('Decido Accion| Me voy a mover al azar al nodo: '),write(DestNode),nl,
+      write('DA| Me voy a mover al azar al nodo: '),write(DestNode),nl,
       Action = move(DestNode).
 
 
