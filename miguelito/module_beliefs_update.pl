@@ -37,6 +37,9 @@ actualizar(has(EntidadDuena,Entidad)):-
 	retractall(at(Entidad,_PosVieja)), %Borrar donde estaba
 	assert(has(EntidadDuena,Entidad)). %Recordar quien la tiene
 
+actualizar(has([agent,IDAgent],[gold,IDGold])):-
+	assert(has([agent,IDAgent],[gold,IDGold])). %Recordar que el agente posee un tesoro nuevo
+
 actualizar(has(EntidadDuena,Entidad)):-
 	retractall(has(EntidadDuena,_EntidadViejas)), %Borrar las entidades viejas que tenia
 	assert(has(EntidadDuena,Entidad)). %Recordar nueva entidad que posee
