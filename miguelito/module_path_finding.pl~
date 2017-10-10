@@ -10,7 +10,7 @@ escribirFrontera(nodo(ID,CostoCamino,Camino,Heuristica)):-
 escribirNodos(IDNodo):-
     write(IDNodo),write(',').
 
-reemplazarPorMejor(Nodo,[],[Nodo]}.
+reemplazarPorMejor(Nodo,[],[Nodo]).
 %Obtiene los vecinos de un nodo
 reemplazarPorMejor(nodo(ID,Costo1,Camino1,H1),
                    [nodo(ID,Costo2,_Camino2,_H2)|RestoF],
@@ -36,29 +36,18 @@ reemplazarPorMejor(nodo(ID1,Costo1,Camino1,H1),
 
 
 %Selecciona el primer nodo si la lista de visitados es vacia
-seleccionar(Nodo,[],[Nodo|RestoFrontera],RestoFrontera).
+seleccionar(Nodo,[Nodo|RestoFrontera],RestoFrontera).
 
-%Selecciona el primer nodo si este no esta en la lista de visitados
-seleccionar(nodo(ID,CostoCamino,Camino,Heuristica),Visitados,[nodo(ID,CostoCamino,Camino,Heuristica)|RestoFrontera],RestoFrontera):-
-    not(member(ID,Visitados)).
-
-% Si el primer nodo de la frontera ya fue visitado, selecciona en el
-% resto de la frontera
-seleccionar(NodoElegido,Visitados,[nodo(ID,_,_,_)|RestoFrontera],FronteraFinal):-
-    member(ID,Visitados),
-    seleccionar(NodoElegido,Visitados,RestoFrontera,FronteraFinal).
+generarVecinos([],Nodo,Vecinos):-
+    node(Nodo,_Pos1,Vecinos).
 
 %Obtiene los vecinos del Nodo2 que no son vecinos de Nodo1
 %El primer nodo tiene el formato de un nodo en la frontera
 %nodo(ID,CostoCamino,Camino,Heuristica)
-generarVecinosNuevos(nodo(IDNodo1,_Cc,_C,_H),IDNodo2,VecinosSinRepetir):-
-    node(IDNodo1,_Pos1,Vecinos1),
-    node(IDNodo2,_Pos2,Vecinos2),
-    findall(Vecino,(member(Vecino,Vecinos2),not(member(Vecino,Vecinos1))),VecinosSinRepetir).
-
-%Obtiene los vecinos del Nodo
-generarVecinos(IDNodo,Vecinos):-
-    node(IDNodo,_Pos,Vecinos).
+generarVecinos(Visitados,Nodo,VecinosSinRepetir):-
+    node(Nodo,_Pos1,Vecinos),
+    findall([V,C],(member([V,C],Vecinos),not(member(V,Visitados))),VecinosSinRepetir).
+    %findall([Veci,CostoVeci],(member([Veci,CostoVeci],Vecinos),not(member(Veci,Visitados))),VecinosSinRepetir).
 
 
 % Ordena una lista de distancias (que son las heuristicas de un nodo a
@@ -185,7 +174,7 @@ buscar_plan_desplazamiento(Metas, RestoPlan, Destino):-
     at([agent,me],IDNodoActual),
     write('  BPD| Estoy en el nodo: '),write(IDNodoActual),nl,
 
-    generarVecinos(IDNodoActual,Vecinos),
+    generarVecinos([],IDNodoActual,Vecinos),
 
     obtenerFrontera(nodo(IDNodoActual,0,[],0),Vecinos,[],FronteraDesordenada),
 
@@ -205,13 +194,13 @@ busquedaAEstrella(Metas,nodo(IDNodoActual,_Cc,PlanAnterior,_H),_Frontera,_Visita
 
 busquedaAEstrella(Metas,NodoActual,Frontera,Visitados,Plan):-
 
-    seleccionar(nodo(IDNodoElegido,CostoCamino,Camino,Heuristica),Visitados,Frontera,FronteraReducida),
+    seleccionar(nodo(IDNodoElegido,CostoCamino,Camino,Heuristica),Frontera,FronteraReducida),
 
     agregarVisitado(IDNodoElegido,Visitados,VisitadosConNodo),
 
-    generarVecinosNuevos(NodoActual,IDNodoElegido,VecinosNuevos),
+    generarVecinos(Visitados,NodoActual,Vecinos),
 
-    obtenerFrontera(nodo(IDNodoElegido,CostoCamino,Camino,Heuristica),VecinosNuevos,FronteraReducida,FronteraConVecinos),
+    obtenerFrontera(nodo(IDNodoElegido,CostoCamino,Camino,Heuristica),Vecinos,FronteraReducida,FronteraConVecinos),
 
     ordenar_por_f(FronteraConVecinos,FronteraOrdenada),
 
