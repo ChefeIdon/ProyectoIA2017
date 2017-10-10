@@ -10,10 +10,12 @@ escribirFrontera(nodo(ID,CostoCamino,Camino,Heuristica)):-
 escribirNodos(IDNodo):-
     write(IDNodo),write(',').
 
-%Selecciona el primer nodo
-seleccionar(Nodo,[Nodo|RestoFrontera],RestoFrontera).
 
-%Obtiene los vecinos de un nodo
+%Agrega al Nodo a la frontera si es que no existia.
+% Si ya existia el Nodo en la frontera se queda con el del menor costo
+% de camino g()
+reemplazarPorMejor(X, [], [X]).
+
 reemplazarPorMejor(nodo(ID,Costo1,Camino1,H1),
                    [nodo(ID,Costo2,_Camino2,_H2)|RestoF],
                    [nodo(ID,Costo1,Camino1,H1)|RestoF]
@@ -162,6 +164,38 @@ actualizarFrontera(nodo(IDNodoPadre,CostoCaminoViejo,CaminoViejo,_HeuristicaViej
     calcularHeuristica(IDNodoHijo,Heuristica),
 
     reemplazarPorMejor(nodo(IDNodoHijo,CostoCamino,CaminoNuevo,Heuristica),FronteraVieja,FronteraNueva).
+
+    %Existe el nodo en frontera?
+    %write('    af2| EXISTE EL NODO VECINO EN LA FRONTERA? antes de usar member'),nl,
+    %member(nodo(IDNodoHijo,OtroCostoCamino,OtroCamino,_OtroH),FronteraVieja),!,
+    %Si existe... Debo guardar solo el de mejor costo de camino
+
+    %elijoMejores(n1(OtroCostoCamino,OtroCamino),n2(CostoCamino,CaminoNuevo),n3(MejorCosto,CaminoMejor)),
+
+    %write('      af2| el nodo vecino ESTA en la frontera | me quedo con el mejor'),nl,
+
+    %delete_if_exists(nodo(IDNodoHijo,_Cc,_C,_H),FronteraVieja,FronteraSinNodo),
+
+    %append([nodo(IDNodoHijo,CostoCamino,CaminoNuevo,Heuristica)],FronteraSinNodo,FronteraNueva).
+
+%Aca solo deberia entrar si el nodo vecino no esta en la frontera
+/*
+actualizarFrontera(nodo(IDNodoPadre,CostoCaminoViejo,CaminoViejo,_HeuristicaVieja) %Nodo padre o actual
+                  ,IDNodoHijo %IDNodo hijo o vecino
+                  ,CostoPaso %Costo paso del Nodo padre al Nodo hijo g()
+                  ,FronteraVieja %Frontera vieja
+                  ,FronteraNueva %Frontera nueva con Nodo hijo
+                  ):-
+
+    CostoCamino is CostoCaminoViejo + CostoPaso,
+
+    append([IDNodoPadre],CaminoViejo,CaminoNuevo),
+
+    calcularHeuristica(IDNodoHijo,Heuristica),
+
+    write('      af3| el nodo vecino no esta en la frontera'),nl,
+    append([nodo(IDNodoHijo,CostoCamino,CaminoNuevo,Heuristica)],FronteraVieja,FronteraNueva).
+*/
 
 % Convierte una lista de IDs de Nodos a una lista de acciones
 % move(IDNodo)
