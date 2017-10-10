@@ -10,9 +10,6 @@ escribirFrontera(nodo(ID,CostoCamino,Camino,Heuristica)):-
 escribirNodos(IDNodo):-
     write(IDNodo),write(',').
 
-%Selecciona el primer nodo
-seleccionar(Nodo,[Nodo|RestoFrontera],RestoFrontera).
-
 %Obtiene los vecinos de un nodo
 reemplazarPorMejor(nodo(ID,Costo1,Camino1,H1),
                    [nodo(ID,Costo2,_Camino2,_H2)|RestoF],
