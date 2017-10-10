@@ -22,8 +22,23 @@
 %
 
 update_beliefs(Percepcion):-
-	write('========================================================================='),
-	forall(member(Relacion,Percepcion),actualizar(Relacion)),nl,nl.
+	write('========================================================================='),nl,
+
+	forall(member(Relacion,Percepcion),actualizar(Relacion)),
+
+	write('Voy a checkear si las entidades siguen en los nodos en que los vi'),nl,
+	forall(member(node(ID,Pos,Ady),Percepcion),avistar(node(ID,Pos,Ady),Percepcion)),
+
+	nl,nl.
+
+avistar(node(A,B,C), Perc):-
+	forall(at(Ent, nodo(A,B,C)),confirmar(Ent,node(A,B,C),Perc))
+	, !. % confirmo que todo lo que habia visto previamente siga existiendo
+avistar(node(_A,_B,_C), _Perc). % no habia nada en ese nodo.
+
+confirmar(Ent, _Nodo, Perc):- member(Ent, Perc), !.
+confirmar(Ent, node(A,B,C), _Perc):- retract(at(Ent, node(A,B,C))).
+
 
 actualizar(atPos(Entidad,Pos)):-
 	retractall(atPos(Entidad,_PosVectorViejo)),
