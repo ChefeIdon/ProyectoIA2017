@@ -24,12 +24,10 @@
 update_beliefs(Percepcion):-
 	forall(member(Relacion,Percepcion),actualizar(Relacion)).
 
-%Recuerda lost AtPos
 actualizar(atPos(Entidad,PosVector)):-
 	retractall(atPos(Entidad,_PosVectorViejo)),
 	assert(atPos(Entidad,PosVector)).
 
-%Recuerda los Has
 actualizar(entity_descr(Entidad,Descripcion)):-
 	retractall(entity_descr(Entidad,_DescripcionVieja)),
 	assert(entity_descr(Entidad,Descripcion)).
@@ -38,6 +36,10 @@ actualizar(has(EntidadDuena,Entidad)):-
 	at(Entidad,_PosVieja), %Recordamos que esa entidad estaba en alguna posicion?
 	retractall(at(Entidad,_PosVieja)), %Borrar donde estaba
 	assert(has(EntidadDuena,Entidad)). %Recordar quien la tiene
+
+actualizar(has([agent,IDAgent],[gold,IDGold])):-
+	not(has([agent,IDAgent],[gold,IDGold])),
+	assert(has([agent,IDAgent],[gold,IDGold])). %Recordar que el agente posee un tesoro nuevo
 
 actualizar(has(EntidadDuena,Entidad)):-
 	retractall(has(EntidadDuena,_EntidadViejas)), %Borrar las entidades viejas que tenia
