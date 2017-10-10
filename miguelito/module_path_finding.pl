@@ -3,9 +3,6 @@
 	    buscar_plan_desplazamiento/3
 	  ]).
 
-%Esto esta bien?
-:- dynamic busquedaAestrella/3.
-
 escribirFrontera(nodo(ID,CostoCamino,Camino,Heuristica)):-
     write('Nodo: '),write(ID),write(' CostoCamino: '),write(CostoCamino),
     write(' Camino: '),write(Camino),write(' Heuristica: '),write(Heuristica),nl.
@@ -17,19 +14,63 @@ escribirNodos(IDNodo):-
 seleccionar(Nodo,[Nodo|RestoFrontera],RestoFrontera).
 
 %Obtiene los vecinos de un nodo
+reemplazarPorMejor(nodo(ID,Costo1,Camino1,H1),
+                   [nodo(ID,Costo2,_Camino2,_H2)|RestoF],
+                   [nodo(ID,Costo1,Camino1,H1)|RestoF]
+                  ):-
+	Costo1 =< Costo2.
+
+reemplazarPorMejor(nodo(ID,Costo1,_Camino1,_H1),
+                   [nodo(ID,Costo2,Camino2,H2)|RestoF],
+                   [nodo(ID,Costo2,Camino2,H2)|RestoF]
+                  ):-
+	Costo1 > Costo2.
+
+
+reemplazarPorMejor(nodo(ID1,Costo1,Camino1,H1),
+                   [nodo(ID2,Costo2,Camino2,H2)|RestoF],
+                   [nodo(ID2,Costo2,Camino2,H2)|FFinal]
+                 ):-
+	ID1 \= ID2,
+	reemplazarPorMejor(nodo(ID1,Costo1,Camino1,H1),RestoF, FFinal).
+
+
+
+
+%Selecciona el primer nodo si la lista de visitados es vacia
+seleccionar(Nodo,[],[Nodo|RestoFrontera],RestoFrontera).
+
+%Selecciona el primer nodo si este no esta en la lista de visitados
+seleccionar(nodo(ID,CostoCamino,Camino,Heuristica),Visitados,[nodo(ID,CostoCamino,Camino,Heuristica)|RestoFrontera],RestoFrontera):-
+    not(member(ID,Visitados)).
+
+% Si el primer nodo de la frontera ya fue visitado, selecciona en el
+% resto de la frontera
+seleccionar(NodoElegido,Visitados,[nodo(ID,_,_,_)|RestoFrontera],FronteraFinal):-
+    member(ID,Visitados),
+    seleccionar(NodoElegido,Visitados,RestoFrontera,FronteraFinal).
+
+%Obtiene los vecinos del Nodo2 que no son vecinos de Nodo1
+%El primer nodo tiene el formato de un nodo en la frontera
+%nodo(ID,CostoCamino,Camino,Heuristica)
+generarVecinosNuevos(nodo(IDNodo1,_Cc,_C,_H),IDNodo2,VecinosSinRepetir):-
+    node(IDNodo1,_Pos1,Vecinos1),
+    node(IDNodo2,_Pos2,Vecinos2),
+    findall(Vecino,(member(Vecino,Vecinos2),not(member(Vecino,Vecinos1))),VecinosSinRepetir).
+
+%Obtiene los vecinos del Nodo
 generarVecinos(IDNodo,Vecinos):-
     node(IDNodo,_Pos,Vecinos).
 
 
 % Ordena una lista de distancias (que son las heuristicas de un nodo a
 % las metas)
-obtenerDistancias(_VectorNodo,[],[]).
-
 ordenarDistancias(DistanciasDesordenadas,DistanciasOrdenadas):-
     quick_sortNumeros(DistanciasDesordenadas,DistanciasOrdenadas).
 
 % Obtiene las distancias de un nodo a todos los nodos que tienen un
 % tesoro (metas) que son las heuristicas
+obtenerDistancias(_VectorNodo,[],[]).
 obtenerDistancias(VectorNodo,[IDNodoMeta|RestoNodosMeta],[Distancia|RestoDistancias]):-
     node(IDNodoMeta,VectorMeta,_Ady),
     distance(VectorNodo,VectorMeta,Distancia),
@@ -42,25 +83,16 @@ calcularHeuristica(IDNodo,MenorDistancia):-
     obtenerDistancias(VectorNodo,IDNodosMeta,Distancias),
     ordenarDistancias(Distancias,[MenorDistancia|_RestoDistancia]).
 
-%Ordena una cantidad
+% Ordena una los nodos de la frontera
+% (nodo(ID,CostoCamino,Camino,Heuristica)) por f=CostoCamino+Heuristica
 ordenar_por_f(FronteraDesordenada,FronteraOrdenada):-
     quick_sortNodos(FronteraDesordenada,FronteraOrdenada).
-
-
-
-noEsMiembro(Elemento,[Elemento|_]):-
-    !,fail.
-
-noEsMiembro(Elemento,[_|RestoLista]):-
-    !,noEsMiembro(Elemento,RestoLista).
-
-noEsMiembro(_,[]).
-
 
 agregarVisitado([IDNodo,Costo],[],[IDNodo,Costo]).
 
 agregarVisitado(Nodo,Visitados,VisitadosConNodo):-
     append([Nodo],Visitados,VisitadosConNodo).
+
 
 % Recorre una lista de Nodos vecinos de la forma [IDNodo,CostoPaso] y
 % utiliza el predicado "actualizarFrontera" para agregar de a un Nodo
@@ -68,11 +100,12 @@ agregarVisitado(Nodo,Visitados,VisitadosConNodo):-
 % nodo(ID,CostoCamino,Camino,Heuristica).
 % Utiliza el Nodo padre para calcular el camino y el costo del camino
 % del Nodo vecino
+% Caso Base:
 obtenerFrontera(_NodoActual %Nodo padre
                ,[] %Lista de vecinos (caso base)
                ,Frontera %Frontera de nodos
                ,Frontera). %Frontera de nodos
-
+%Caso Base:
 obtenerFrontera(NodoPadre %Nodo padre
                ,[[IDNodoVecino,CostoPaso]|RestoVecinos] %Lista vecinos con un vecino y el resto de la lista
                ,[] %Frontera inicial vacia (caso base)
@@ -82,7 +115,7 @@ obtenerFrontera(NodoPadre %Nodo padre
 
    obtenerFrontera(NodoPadre,RestoVecinos,FronteraPasoMedio,FronteraNueva).
 
-
+%Caso recursivo:
 obtenerFrontera(NodoPadre %Nodo padre
                ,[[IDNodoVecino,CostoPaso]|RestoVecinos] %Lista de vecinos con un vecino y el resto de la lista
                ,FronteraVieja %Frontera inicial
@@ -122,15 +155,13 @@ actualizarFrontera(nodo(IDNodoPadre,CostoCaminoViejo,CaminoViejo,_HeuristicaViej
                   ,FronteraNueva %Frontera nueva con Nodo hijo
                   ):-
 
-    delete_if_exists(nodo(IDNodoHijo,_AlgunCostoCamino,_AlgunCamino,_AlgunaH),FronteraVieja,FronteraSinRepetido),
-
     CostoCamino is CostoCaminoViejo + CostoPaso,
 
     append([IDNodoPadre],CaminoViejo,CaminoNuevo),
 
     calcularHeuristica(IDNodoHijo,Heuristica),
 
-    append([nodo(IDNodoHijo,CostoCamino,CaminoNuevo,Heuristica)],FronteraSinRepetido,FronteraNueva).
+    reemplazarPorMejor(nodo(IDNodoHijo,CostoCamino,CaminoNuevo,Heuristica),FronteraVieja,FronteraNueva).
 
 % Convierte una lista de IDs de Nodos a una lista de acciones
 % move(IDNodo)
@@ -151,10 +182,8 @@ invertirYCrearPlan([Destino|RestoCamino],Plan,Destino):-
 %
 %
 %Hacer: Usar un planificador para satisfacer varias metas.
-buscar_plan_desplazamiento(Metas, RestoPlan, Destino):-
-    %write('Entre a buscar_plan_desplazamiento'),nl,
-    write('  BPD| Los nodos metas son:'),write(Metas),nl,
 
+buscar_plan_desplazamiento(Metas, RestoPlan, Destino):-
     at([agent,me],IDNodoActual),
     write('  BPD| Estoy en el nodo: '),write(IDNodoActual),nl,
 
@@ -163,67 +192,31 @@ buscar_plan_desplazamiento(Metas, RestoPlan, Destino):-
     obtenerFrontera(nodo(IDNodoActual,0,[],0),Vecinos,[],FronteraDesordenada),
 
     ordenar_por_f(FronteraDesordenada,FronteraOrdenada),
-    %write('BPD| Ordene esa frontera por F'),nl,
 
-    %write('BPD| LLAMO POR PRIMERA VEZ A BUSQUEDA A*'),nl,
-    %write('BPD| Con frontera inicial: '),nl,
-    %forall(member(UnNodo,FronteraOrdenadaSinInicial),escribirFrontera(UnNodo)),nl,
-
+    write('  BPD| LLAMO POR PRIMERA VEZ A BUSQUEDA A*'),nl,
     busquedaAEstrella(Metas,nodo(IDNodoActual,0,[],0),FronteraOrdenada,[IDNodoActual],CaminoAMeta),
 
-    %write('BPD| Salgo de Busqueda A* con camino a meta: '),write(CaminoAMeta),nl,
-
-    invertirYCrearPlan(CaminoAMeta,[_PrimerMove|RestoPlan],Destino),
-
-    write('  BPD| El plan es: '),write(RestoPlan),nl,
-    write('  BPD| Destino:'),write(Destino),nl.
-
-%    forall(member(Nodo,Camino),append(move(Nodo),Plan)),
-
- %   write('Ya genere plan y ahora lo recuerdo'),nl,
-
-  %  assert(plan(Plan))
-
+    invertirYCrearPlan(CaminoAMeta,[_PrimerMove|RestoPlan],Destino).
 
 
 busquedaAEstrella(Metas,nodo(IDNodoActual,_Cc,PlanAnterior,_H),_Frontera,_Visitados,Plan):-
-    %write('  A* base'),nl,
 
-    %seleccionar(nodo(IDNodoElegido,_CostoCamino,Plan,_Heuristica),Frontera,_FronteraReducida),
-    %write('A*| Seleccione el primer nodo: '),write(IDNodoElegido),nl,
-    %write('  A*| Es el nodo actual una meta?'),nl,
     member(IDNodoActual,Metas),
-    append([IDNodoActual],PlanAnterior,Plan),
-    write('    A*| LLEGUE A UNA META!'),nl.
-    %write('  A*| Nodo meta: '),write(IDNodoActual),write(' Metas: '),write(Metas),
-    %write(' Camino hacia meta: '),write(Plan),nl.
 
+    append([IDNodoActual],PlanAnterior,Plan).
 
-busquedaAEstrella(Metas,_IDNodoActual,Frontera,Visitados,Plan):-
-    %nl,write('A* recursivo... Nodo actual:'),write(IDNodoActual),nl,
+busquedaAEstrella(Metas,NodoActual,Frontera,Visitados,Plan):-
 
-    %write('A*r| Frontera al principio es: '),nl,
-    %forall(member(Nodo,Frontera),escribirFrontera(Nodo)),nl,
-
-    seleccionar(nodo(IDNodoElegido,CostoCamino,Camino,Heuristica),Frontera,FronteraReducida),
-    %write('  A*r| Seleccione el primer nodo: '),write(IDNodoElegido),write(' con costo: '),write(CostoCamino),
-    %write(', heuristica: '),write(Heuristica),write(', y el camino es: '),write(Camino),nl,
+    seleccionar(nodo(IDNodoElegido,CostoCamino,Camino,Heuristica),Visitados,Frontera,FronteraReducida),
 
     agregarVisitado(IDNodoElegido,Visitados,VisitadosConNodo),
-    %write('A*r| Agregue como visitado al nodo: '),write(IDNodoElegido),write(' Nodos visitados: '),write(VisitadosConNodo),nl,
 
-    %write('A*| Voy a generar la diferencia de vecinos/3'),nl,
-    generarVecinos(IDNodoElegido,Vecinos),
-    %write('A*r| Genere vecinos del nodo elegido: '),write(Vecinos),nl,
+    generarVecinosNuevos(NodoActual,IDNodoElegido,VecinosNuevos),
 
-    obtenerFrontera(nodo(IDNodoElegido,CostoCamino,Camino,Heuristica),Vecinos,FronteraReducida,FronteraConVecinos),
-    %write('  A*r| Agregue los vecinos del nodo elegido a la frontera... '),write(FronteraConVecinos),nl,
+    obtenerFrontera(nodo(IDNodoElegido,CostoCamino,Camino,Heuristica),VecinosNuevos,FronteraReducida,FronteraConVecinos),
 
     ordenar_por_f(FronteraConVecinos,FronteraOrdenada),
-    %write('  A*r| Ordene la frontera con vecinos: '),nl,
-    %forall(member(Nodo,FronteraOrdenada),escribirFrontera(Nodo)),nl,
 
-    %write('  A*r| Llamo recursivamente...'),nl,
     busquedaAEstrella(Metas,nodo(IDNodoElegido,CostoCamino,Camino,Heuristica),FronteraOrdenada,VisitadosConNodo,Plan).
 
 

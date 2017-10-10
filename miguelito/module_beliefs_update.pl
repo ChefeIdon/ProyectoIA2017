@@ -38,6 +38,7 @@ actualizar(has(EntidadDuena,Entidad)):-
 	assert(has(EntidadDuena,Entidad)). %Recordar quien la tiene
 
 actualizar(has([agent,IDAgent],[gold,IDGold])):-
+	not(has([agent,IDAgent],[gold,IDGold])), %Ya recordaba que tenia ese tesoro?
 	assert(has([agent,IDAgent],[gold,IDGold])). %Recordar que el agente posee un tesoro nuevo
 
 actualizar(has(EntidadDuena,Entidad)):-
