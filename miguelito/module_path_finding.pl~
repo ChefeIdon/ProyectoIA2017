@@ -192,13 +192,13 @@ busquedaAEstrella(Metas,nodo(IDNodoActual,_Cc,PlanAnterior,_H),_Frontera,_Visita
 
     append([IDNodoActual],PlanAnterior,Plan).
 
-busquedaAEstrella(Metas,NodoActual,Frontera,Visitados,Plan):-
+busquedaAEstrella(Metas,_NodoActual,Frontera,Visitados,Plan):-
 
     seleccionar(nodo(IDNodoElegido,CostoCamino,Camino,Heuristica),Frontera,FronteraReducida),
 
     agregarVisitado(IDNodoElegido,Visitados,VisitadosConNodo),
 
-    generarVecinos(Visitados,NodoActual,Vecinos),
+    generarVecinos(Visitados,IDNodoElegido,Vecinos),
 
     obtenerFrontera(nodo(IDNodoElegido,CostoCamino,Camino,Heuristica),Vecinos,FronteraReducida,FronteraConVecinos),
 

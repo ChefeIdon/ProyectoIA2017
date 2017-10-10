@@ -25,10 +25,10 @@ update_beliefs(Percepcion):-
 	write('========================================================================='),
 	forall(member(Relacion,Percepcion),actualizar(Relacion)),nl,nl.
 
-actualizar(atPos(Entidad,PosVector)):-
+actualizar(atPos(Entidad,Pos)):-
 	retractall(atPos(Entidad,_PosVectorViejo)),
-	assert(atPos(Entidad,PosVector)),
-	write(Entidad),write(' ahora esta en el vector '),write(PosVector),nl.
+	assert(atPos(Entidad,Pos)),
+	write(Entidad),write(' ahora esta en '),write(Pos),nl.
 
 actualizar(entity_descr(Entidad,Descripcion)):-
 	retractall(entity_descr(Entidad,_DescripcionVieja)),

@@ -181,7 +181,7 @@ buscar_plan_desplazamiento(Metas, RestoPlan, Destino):-
     ordenar_por_f(FronteraDesordenada,FronteraOrdenada),
 
     write('  BPD| LLAMO POR PRIMERA VEZ A BUSQUEDA A*'),nl,
-    busquedaAEstrella(Metas,nodo(IDNodoActual,0,[],0),FronteraOrdenada,[IDNodoActual],CaminoAMeta),
+    !,busquedaAEstrella(Metas,nodo(IDNodoActual,0,[],0),FronteraOrdenada,[IDNodoActual],CaminoAMeta),
 
     invertirYCrearPlan(CaminoAMeta,[_PrimerMove|RestoPlan],Destino).
 
