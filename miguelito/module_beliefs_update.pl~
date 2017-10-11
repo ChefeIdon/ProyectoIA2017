@@ -39,7 +39,7 @@ avistar(_Nodo, _Percepcion).
 confirmar(Entidad, IDNodo, Percepcion):-
 	write('Estoy viendo a '),write(Entidad),write(' en '),write(IDNodo),write('?'),
 	member(at(Entidad,IDNodo), Percepcion),
-	write(' SI!')nl,,!.
+	write(' SI!'),nl,!.
 
 confirmar(Entidad, IDNodo, _Percepcion):-
 	retract(at(Entidad,IDNodo)),

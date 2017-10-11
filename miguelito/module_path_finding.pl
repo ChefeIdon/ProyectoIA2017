@@ -3,15 +3,18 @@
 	    buscar_plan_desplazamiento/3
 	  ]).
 
+% Predicado utilizado para escribir por consola la estructura de un nodo
+% de la frontera
 escribirFrontera(nodo(ID,CostoCamino,Camino,Heuristica)):-
     write('Nodo: '),write(ID),write(' CostoCamino: '),write(CostoCamino),
     write(' Camino: '),write(Camino),write(' Heuristica: '),write(Heuristica),nl.
 
-escribirNodos(IDNodo):-
-    write(IDNodo),write(',').
 
+%Recorre una frontera
+%Si encuentra al Nodo, se queda con el mejor
+%Si no encuentra al Nodo, lo agrega al final
 reemplazarPorMejor(Nodo,[],[Nodo]).
-%Obtiene los vecinos de un nodo
+
 reemplazarPorMejor(nodo(ID,Costo1,Camino1,H1),
                    [nodo(ID,Costo2,_Camino2,_H2)|RestoF],
                    [nodo(ID,Costo1,Camino1,H1)|RestoF]
@@ -35,19 +38,19 @@ reemplazarPorMejor(nodo(ID1,Costo1,Camino1,H1),
 
 
 
-%Selecciona el primer nodo si la lista de visitados es vacia
+%Selecciona al primer nodo de la frontera
+%Retorna la frontera sin el primer nodo
 seleccionar(Nodo,[Nodo|RestoFrontera],RestoFrontera).
 
+
+% Obtiene los vecinos de un nodo que no estan en la lista de nodos
+% visitados
 generarVecinos([],Nodo,Vecinos):-
     node(Nodo,_Pos1,Vecinos).
 
-%Obtiene los vecinos del Nodo2 que no son vecinos de Nodo1
-%El primer nodo tiene el formato de un nodo en la frontera
-%nodo(ID,CostoCamino,Camino,Heuristica)
 generarVecinos(Visitados,Nodo,VecinosSinRepetir):-
     node(Nodo,_Pos1,Vecinos),
     findall([V,C],(member([V,C],Vecinos),not(member(V,Visitados))),VecinosSinRepetir).
-    %findall([Veci,CostoVeci],(member([Veci,CostoVeci],Vecinos),not(member(Veci,Visitados))),VecinosSinRepetir).
 
 
 % Ordena una lista de distancias (que son las heuristicas de un nodo a
@@ -56,26 +59,32 @@ ordenarDistancias(DistanciasDesordenadas,DistanciasOrdenadas):-
     quick_sortNumeros(DistanciasDesordenadas,DistanciasOrdenadas).
 
 % Obtiene las distancias de un nodo a todos los nodos que tienen un
-% tesoro (metas) que son las heuristicas
+% tesoro (metas).
+% La heuristica elegida es Euclidiana
 obtenerDistancias(_VectorNodo,[],[]).
 obtenerDistancias(VectorNodo,[IDNodoMeta|RestoNodosMeta],[Distancia|RestoDistancias]):-
     node(IDNodoMeta,VectorMeta,_Ady),
     distance(VectorNodo,VectorMeta,Distancia),
     obtenerDistancias(VectorNodo,RestoNodosMeta,RestoDistancias).
 
-%Obtiene la mejor
+%Obtiene la mejor heuristica para un nodo
+%Elige la primer heuristica de una lista de heuristica ordenadas
 calcularHeuristica(IDNodo,MenorDistancia):-
     node(IDNodo,VectorNodo,_Ady),
     findall(IDNodoMeta,at([gold,_Nombre],IDNodoMeta),IDNodosMeta),
     obtenerDistancias(VectorNodo,IDNodosMeta,Distancias),
     ordenarDistancias(Distancias,[MenorDistancia|_RestoDistancia]).
 
-% Ordena una los nodos de la frontera
-% (nodo(ID,CostoCamino,Camino,Heuristica)) por f=CostoCamino+Heuristica
+%Ordena los nodos de la frontera llamando a quick_sortNodos
+%f()=g()+h()
+%g()=Costo del Camino
+%h()=Heuristica
 ordenar_por_f(FronteraDesordenada,FronteraOrdenada):-
     quick_sortNodos(FronteraDesordenada,FronteraOrdenada).
 
-agregarVisitado([IDNodo,Costo],[],[IDNodo,Costo]).
+
+%Agrega un nodo a la lista de visitados
+agregarVisitado(Nodo,[],[Nodo]).
 
 agregarVisitado(Nodo,Visitados,VisitadosConNodo):-
     append([Nodo],Visitados,VisitadosConNodo).
@@ -163,13 +172,9 @@ invertirYCrearPlan([Destino|RestoCamino],Plan,Destino):-
     convertirAccion(CaminoOrdenado,Plan).
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%
 % buscar_plan_desplazamiento(+Metas, -Plan, -Destino)
-%
-%
-%Hacer: Usar un planificador para satisfacer varias metas.
-
+% Llama a busquedaAEstrella con las metas, el nodo actual, los vecinos
+% del nodo actual, y al nodo actual como visitado
 buscar_plan_desplazamiento(Metas, RestoPlan, Destino):-
     at([agent,me],IDNodoActual),
     write('BPD| Estoy en el nodo: '),write(IDNodoActual),nl,
@@ -185,13 +190,26 @@ buscar_plan_desplazamiento(Metas, RestoPlan, Destino):-
 
     invertirYCrearPlan(CaminoAMeta,[_PrimerMove|RestoPlan],Destino).
 
-
+% Algoritmo A* Caso base:
+%
+% +Metas: Lista nodos meta
+% +NodoActual: Nodo actual
+% +Frontera: Lista de nodos en la frontera
+% +Visitados: Lista de nodos visitados
+% -Plan: Camino de costo minimo hacia una meta
 busquedaAEstrella(Metas,nodo(IDNodoActual,_Cc,PlanAnterior,_H),_Frontera,_Visitados,Plan):-
 
     member(IDNodoActual,Metas),
 
     append([IDNodoActual],PlanAnterior,Plan).
 
+% Algoritmo A* Caso recursivo:
+%
+% +Metas: Lista nodos meta
+% +NodoActual: Nodo actual
+% +Frontera: Lista de nodos en la frontera.
+% +Visitados: Lista de nodos visitados
+% -Plan: Camino de costo minimo hacia una meta
 busquedaAEstrella(Metas,_NodoActual,Frontera,Visitados,Plan):-
 
     seleccionar(nodo(IDNodoElegido,CostoCamino,Camino,Heuristica),Frontera,FronteraReducida),
@@ -207,6 +225,9 @@ busquedaAEstrella(Metas,_NodoActual,Frontera,Visitados,Plan):-
     busquedaAEstrella(Metas,nodo(IDNodoElegido,CostoCamino,Camino,Heuristica),FronteraOrdenada,VisitadosConNodo,Plan).
 
 
+
+% Algoritmo quick_sort para ordenar una lista de Nodos en formato de
+% frontera: nodo(ID,CostoCamino,Camino,Heuristica)
 quick_sortNodos(Lista,ListaOrdenada):-
     q_sortNodos(Lista,[],ListaOrdenada).
 
@@ -245,6 +266,7 @@ pivotingNodos(nodo(Id,CostoCaminoCabeza,Camino,HeuristicaCabeza),
     pivotingNodos(nodo(Id,CostoCaminoCabeza,Camino,HeuristicaCabeza),T,L,G).
 
 
+%Algoritmo quick_sort para ordenar una lista de números
 quick_sortNumeros(List,Sorted):-
     q_sort(List,[],Sorted).
 q_sort([],Acc,Acc).
