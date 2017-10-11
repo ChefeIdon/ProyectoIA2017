@@ -44,10 +44,14 @@ run:-
 %%%%%%%%%%%%%%%%%%%%%%%%%                          %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+% Es verdadero si Destino se unifica con un nodo donde se encuentra un
+% tesoro
 esMetaAlcanzable(Destino):-
       at([gold,_NombreTesoro],Destino).
 
 
+% Decide una accion de un plan si el Destino del plan (Meta) es
+% alcanzable
 decide_action(Action):-
       plan([Action|RestoPlan],Destino),
       write('DA| Estoy ejecutando un plan para llegar a '),write(Destino),nl,
@@ -59,6 +63,7 @@ decide_action(Action):-
       write('Si!, entonces la accion que voy a tomar es:'), write(Action),nl,
       write('DA| El resto del plan: '),write(RestoPlan),nl,
       assert(plan(RestoPlan,Destino)).
+
 
 decide_action(Action):-
 	at([agent, me], MyNode),
@@ -77,6 +82,8 @@ decide_action(Action):-
         write('DA| Hay un enemigo cerca! voy a intentar atacarlo...'),nl,
 	Action = attack([agent, Target]).
 
+% Llama a buscar_plan_desplazamiento con una lista de todos los nodos
+% que conoce el agente donde hay un tesoro
 decide_action(Action):-
       write('DA| Voy a buscar los tesoros que conozco'),nl,
       findall(Node,at([gold,_NombreOro],Node),NodosMeta),
@@ -84,8 +91,6 @@ decide_action(Action):-
       write('DA| Encontre un plan para llegar a un tesoro en el nodo: '),write(Destino),nl,
       write('DA| Mi siguiente accion es: '),write(Action),nl,
       assert(plan(RestoPlan,Destino)).
-
-
 
 
 decide_action(Action):-

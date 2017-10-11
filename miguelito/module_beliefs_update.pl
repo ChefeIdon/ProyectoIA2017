@@ -28,20 +28,20 @@ update_beliefs(Percepcion):-
 
 	write('UB| Voy a checkear si las entidades siguen en los nodos en que los vi'),nl,
 
-	forall(member(node(ID,Pos,Ady),Percepcion),avistar(node(ID,Pos,Ady),Percepcion)).
+	forall(member(node(ID,Pos,Ady),Percepcion),checkear(node(ID,Pos,Ady),Percepcion)).
 
 
-avistar(node(IDNodo,_Pos,_Ady), Percepcion):-
-	forall(at(Entidad, IDNodo),confirmar(Entidad,IDNodo,Percepcion)),
+checkear(node(IDNodo,_Pos,_Ady), Percepcion):-
+	forall(at(Entidad, IDNodo),checkearEntidad(Entidad,IDNodo,Percepcion)),
 	!.
-avistar(_Nodo, _Percepcion).
+checkear(_Nodo, _Percepcion).
 
-confirmar(Entidad, IDNodo, Percepcion):-
+checkearEntidad(Entidad, IDNodo, Percepcion):-
 	write('Estoy viendo a '),write(Entidad),write(' en '),write(IDNodo),write('?'),
 	member(at(Entidad,IDNodo), Percepcion),
 	write(' SI!'),nl,!.
 
-confirmar(Entidad, IDNodo, _Percepcion):-
+checkearEntidad(Entidad, IDNodo, _Percepcion):-
 	retract(at(Entidad,IDNodo)),
 	write('Ya no veo a '),write(Entidad),write(' en '),write(IDNodo),nl.
 

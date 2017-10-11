@@ -140,7 +140,7 @@ s:- start_ag.
 
 start_ag_instance(InstanceID):-
                     %set_prolog_stack(global, limit(512000000)),
-                    AgClassName = miguelito,
+                    AgClassName = miguelitos,
                     AgInstanceName =.. [AgClassName, InstanceID],
 		    agent_init(AgInstanceName),
 		    assert(ag_name(AgInstanceName)),
