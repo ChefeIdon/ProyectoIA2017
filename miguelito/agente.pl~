@@ -7,7 +7,7 @@
 
 :- consult(extras_meta_preds).
 
-:- dynamic intention/1, plan/1.
+:- dynamic intention/1, plan/2.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -43,12 +43,22 @@ run:-
 %%%%%%%%%%%%%%%%%%%%%%%%%        DELIBERATION      %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%                          %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+esMetaAlcanzable(Destino):-
+      at([gold,_NombreTesoro],Destino).
+
+
 decide_action(Action):-
-      plan([Action|RestoPlan]),
-      retractall(plan(_)),
-      write('DA| Estoy ejecutando un plan, la accion que voy a tomar es:'), write(Action),nl,
+      plan([Action|RestoPlan],Destino),
+      write('DA| Estoy ejecutando un plan para llegar a '),write(Destino),nl,
+      write('DA| La meta es alcanzable?... '),
+
+      esMetaAlcanzable(Destino),
+      retractall(plan(_,_)),
+
+      write('Si!, entonces la accion que voy a tomar es:'), write(Action),nl,
       write('DA| El resto del plan: '),write(RestoPlan),nl,
-      assert(plan(RestoPlan)).
+      assert(plan(RestoPlan,Destino)).
 
 decide_action(Action):-
 	at([agent, me], MyNode),
@@ -71,9 +81,9 @@ decide_action(Action):-
       write('DA| Voy a buscar los tesoros que conozco'),nl,
       findall(Node,at([gold,_NombreOro],Node),NodosMeta),
       buscar_plan_desplazamiento(NodosMeta,[Action|RestoPlan],Destino),
-      write('DA| Encontre un plan para llegar al nodo: '),write(Destino),nl,
+      write('DA| Encontre un plan para llegar a un tesoro en el nodo: '),write(Destino),nl,
       write('DA| Mi siguiente accion es: '),write(Action),nl,
-      assert(plan(RestoPlan)).
+      assert(plan(RestoPlan,Destino)).
 
 
 
@@ -106,8 +116,8 @@ decide_action(Action):-
 
 
 start_ag:-
-      set_prolog_stack(global, limit(512000000)),
-      AgName = miguelito,
+           %set_prolog_stack(global, limit(512000000)),
+           AgName = miguelito,
            agent_init(AgName),
            assert(ag_name(AgName)),
 		   agent_reset,
@@ -129,7 +139,8 @@ s:- start_ag.
 
 
 start_ag_instance(InstanceID):-
-                    AgClassName = template,
+                    %set_prolog_stack(global, limit(512000000)),
+                    AgClassName = miguelito,
                     AgInstanceName =.. [AgClassName, InstanceID],
 		    agent_init(AgInstanceName),
 		    assert(ag_name(AgInstanceName)),

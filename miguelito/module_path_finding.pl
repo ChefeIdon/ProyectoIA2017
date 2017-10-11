@@ -172,7 +172,7 @@ invertirYCrearPlan([Destino|RestoCamino],Plan,Destino):-
 
 buscar_plan_desplazamiento(Metas, RestoPlan, Destino):-
     at([agent,me],IDNodoActual),
-    write('  BPD| Estoy en el nodo: '),write(IDNodoActual),nl,
+    write('BPD| Estoy en el nodo: '),write(IDNodoActual),nl,
 
     generarVecinos([],IDNodoActual,Vecinos),
 
@@ -180,7 +180,7 @@ buscar_plan_desplazamiento(Metas, RestoPlan, Destino):-
 
     ordenar_por_f(FronteraDesordenada,FronteraOrdenada),
 
-    write('  BPD| LLAMO POR PRIMERA VEZ A BUSQUEDA A*'),nl,
+    write('BPD| LLAMO POR PRIMERA VEZ A BUSQUEDA A*'),nl,
     !,busquedaAEstrella(Metas,nodo(IDNodoActual,0,[],0),FronteraOrdenada,[IDNodoActual],CaminoAMeta),
 
     invertirYCrearPlan(CaminoAMeta,[_PrimerMove|RestoPlan],Destino).
@@ -220,9 +220,9 @@ q_sortNodos([Cabeza|Cola],Acc,ListaOrdenada):-
 
 pivotingNodos(_Cabeza,[],[],[]).
 
-pivotingNodos(nodo(_Id,CostoCaminoCabeza,_Camino,HeuristicaCabeza),
-         [nodo(_IdNodo,CostoCaminoNodo,_CaminoNodo,HeuristicaNodo)|T],
-         [nodo(_IdNodo,CostoCaminoNodo,_CaminoNodo,HeuristicaNodo)|L],
+pivotingNodos(nodo(Id,CostoCaminoCabeza,Camino,HeuristicaCabeza),
+         [nodo(IdNodo,CostoCaminoNodo,CaminoNodo,HeuristicaNodo)|T],
+         [nodo(IdNodo,CostoCaminoNodo,CaminoNodo,HeuristicaNodo)|L],
          G):-
 
     CostoNodo is CostoCaminoNodo + HeuristicaNodo,
@@ -230,19 +230,19 @@ pivotingNodos(nodo(_Id,CostoCaminoCabeza,_Camino,HeuristicaCabeza),
 
     CostoNodo>=CostoCabeza,
 
-    pivotingNodos(nodo(_Id,CostoCaminoCabeza,_Camino,HeuristicaCabeza),T,L,G).
+    pivotingNodos(nodo(Id,CostoCaminoCabeza,Camino,HeuristicaCabeza),T,L,G).
 
-pivotingNodos(nodo(_Id,CostoCaminoCabeza,_Camino,HeuristicaCabeza),
-         [nodo(_IdNodo,CostoCaminoNodo,_CaminoNodo,HeuristicaNodo)|T],
+pivotingNodos(nodo(Id,CostoCaminoCabeza,Camino,HeuristicaCabeza),
+         [nodo(IdNodo,CostoCaminoNodo,CaminoNodo,HeuristicaNodo)|T],
          L,
-         [nodo(_IdNodo,CostoCaminoNodo,_CaminoNodo,HeuristicaNodo)|G]
+         [nodo(IdNodo,CostoCaminoNodo,CaminoNodo,HeuristicaNodo)|G]
         ):-
 
     CostoNodo is CostoCaminoNodo + HeuristicaNodo,
     CostoCabeza is CostoCaminoCabeza + HeuristicaCabeza,
     CostoNodo<CostoCabeza,
 
-    pivotingNodos(nodo(_Id,CostoCaminoCabeza,_Camino,HeuristicaCabeza),T,L,G).
+    pivotingNodos(nodo(Id,CostoCaminoCabeza,Camino,HeuristicaCabeza),T,L,G).
 
 
 quick_sortNumeros(List,Sorted):-

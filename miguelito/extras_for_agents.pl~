@@ -23,8 +23,8 @@
 % Muestra por consola cierta información básica relevante del agente en
 % el turno corriente.
 
-display_ag:-
-	not(writes_disabled),!,
+display_ag:-nl.
+	/*not(writes_disabled),!,
 	nl,
 	writeln('-------------------------------------------------------------'),
 	nl,
@@ -32,14 +32,14 @@ display_ag:-
 	write('Agente: '), write(AgName), write('      '),
 
 	time(Time),
-	write('tiempo: '), write(Time), write('	   '),
+	write('Tiempo: '), write(Time), write('	   '),
 
         property([agent, me], life, AgStamina),
 	property([agent, me], lifeTotal, AgMaxStamina),
         write('vida: '), write(AgStamina), write(' / '), write(AgMaxStamina), write('	   '),
 
-	property([agent, me], skill, AgSkill),
-	write('skill: '), write(AgSkill), write('	   '),
+	property([agent, me], skill, _AgSkill),
+	%write('skill: '), write(AgSkill), write('	   '),
 
 	at([agent, me], MyPos),
 	write('Pos: '), write(MyPos), write('	       '),
@@ -48,7 +48,7 @@ display_ag:-
 
         writeln('Yo recuerdo: '),
 	forall(at(Entity, _Pos), display_entity(Entity)).
-	%forall(has(_, Entity), display_entity(Entity)).
+	%forall(has(_, Entity), display_entity(Entity)).*/
 
 display_ag.
 

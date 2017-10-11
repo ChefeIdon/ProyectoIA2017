@@ -22,7 +22,7 @@
 %
 % Muestra por consola cierta información básica relevante del agente en
 % el turno corriente.
-
+/*
 display_ag:-
 	not(writes_disabled),!,
 	nl,
@@ -49,6 +49,7 @@ display_ag:-
         writeln('Yo recuerdo: '),
 	forall(at(Entity, _Pos), display_entity(Entity)).
 	%forall(has(_, Entity), display_entity(Entity)).
+*/
 
 display_ag.
 
