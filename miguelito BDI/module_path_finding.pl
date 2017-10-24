@@ -1,0 +1,296 @@
+:- module(path_finding,
+	  [
+	    buscar_plan_desplazamiento/3
+	  ]).
+
+% Predicado utilizado para escribir por consola la estructura de un nodo
+% de la frontera
+escribirFrontera(nodo(ID,CostoCamino,Camino,Heuristica)):-
+    write('Nodo: '),write(ID),write(' CostoCamino: '),write(CostoCamino),
+    write(' Camino: '),write(Camino),write(' Heuristica: '),write(Heuristica),nl.
+
+
+%Recorre una frontera
+%Si encuentra al Nodo, se queda con el mejor
+%Si no encuentra al Nodo, lo agrega al final
+reemplazarPorMejor(Nodo,[],[Nodo]).
+
+reemplazarPorMejor(nodo(ID,Costo1,Camino1,H1),
+                   [nodo(ID,Costo2,_Camino2,_H2)|RestoF],
+                   [nodo(ID,Costo1,Camino1,H1)|RestoF]
+                  ):-
+	Costo1 =< Costo2.
+
+reemplazarPorMejor(nodo(ID,Costo1,_Camino1,_H1),
+                   [nodo(ID,Costo2,Camino2,H2)|RestoF],
+                   [nodo(ID,Costo2,Camino2,H2)|RestoF]
+                  ):-
+	Costo1 > Costo2.
+
+
+reemplazarPorMejor(nodo(ID1,Costo1,Camino1,H1),
+                   [nodo(ID2,Costo2,Camino2,H2)|RestoF],
+                   [nodo(ID2,Costo2,Camino2,H2)|FFinal]
+                 ):-
+	ID1 \= ID2,
+	reemplazarPorMejor(nodo(ID1,Costo1,Camino1,H1),RestoF, FFinal).
+
+
+
+
+%Selecciona al primer nodo de la frontera
+%Retorna la frontera sin el primer nodo
+seleccionar(Nodo,[Nodo|RestoFrontera],RestoFrontera).
+
+
+% Obtiene los vecinos de un nodo que no estan en la lista de nodos
+% visitados
+generarVecinos([],Nodo,Vecinos):-
+    node(Nodo,_Pos1,Vecinos).
+
+generarVecinos(Visitados,Nodo,VecinosSinRepetir):-
+    node(Nodo,_Pos1,Vecinos),
+    findall([V,C],(member([V,C],Vecinos),not(member(V,Visitados))),VecinosSinRepetir).
+
+
+% Ordena una lista de distancias (que son las heuristicas de un nodo a
+% las metas)
+ordenarDistancias(DistanciasDesordenadas,DistanciasOrdenadas):-
+    quick_sortNumeros(DistanciasDesordenadas,DistanciasOrdenadas).
+
+% Obtiene las distancias de un nodo a todos los nodos que tienen un
+% tesoro (metas).
+% La heuristica elegida es Euclidiana
+obtenerDistancias(_VectorNodo,[],[]).
+obtenerDistancias(VectorNodo,[IDNodoMeta|RestoNodosMeta],[Distancia|RestoDistancias]):-
+    node(IDNodoMeta,VectorMeta,_Ady),
+    distance(VectorNodo,VectorMeta,Distancia),
+    obtenerDistancias(VectorNodo,RestoNodosMeta,RestoDistancias).
+
+%Obtiene la mejor heuristica para un nodo
+%Elige la primer heuristica de una lista de heuristica ordenadas
+calcularHeuristica(IDNodo,MenorDistancia):-
+    node(IDNodo,VectorNodo,_Ady),
+    findall(IDNodoMeta,at([gold,_Nombre],IDNodoMeta),IDNodosMeta),
+    obtenerDistancias(VectorNodo,IDNodosMeta,Distancias),
+    ordenarDistancias(Distancias,[MenorDistancia|_RestoDistancia]).
+
+%Ordena los nodos de la frontera llamando a quick_sortNodos
+%f()=g()+h()
+%g()=Costo del Camino
+%h()=Heuristica
+ordenar_por_f(FronteraDesordenada,FronteraOrdenada):-
+    quick_sortNodos(FronteraDesordenada,FronteraOrdenada).
+
+
+%Agrega un nodo a la lista de visitados
+agregarVisitado(Nodo,[],[Nodo]).
+
+agregarVisitado(Nodo,Visitados,VisitadosConNodo):-
+    append([Nodo],Visitados,VisitadosConNodo).
+
+
+% Recorre una lista de Nodos vecinos de la forma [IDNodo,CostoPaso] y
+% utiliza el predicado "actualizarFrontera" para agregar de a un Nodo
+% vecino a la frontera de Nodos de la forma
+% nodo(ID,CostoCamino,Camino,Heuristica).
+% Utiliza el Nodo padre para calcular el camino y el costo del camino
+% del Nodo vecino
+% Caso Base:
+obtenerFrontera(_NodoActual %Nodo padre
+               ,[] %Lista de vecinos (caso base)
+               ,Frontera %Frontera de nodos
+               ,Frontera). %Frontera de nodos
+%Caso Base:
+obtenerFrontera(NodoPadre %Nodo padre
+               ,[[IDNodoVecino,CostoPaso]|RestoVecinos] %Lista vecinos con un vecino y el resto de la lista
+               ,[] %Frontera inicial vacia (caso base)
+               ,FronteraNueva):- %Frontera final con el primer vecino
+
+   actualizarFrontera(NodoPadre,IDNodoVecino,CostoPaso,[],FronteraPasoMedio),
+
+   obtenerFrontera(NodoPadre,RestoVecinos,FronteraPasoMedio,FronteraNueva).
+
+%Caso recursivo:
+obtenerFrontera(NodoPadre %Nodo padre
+               ,[[IDNodoVecino,CostoPaso]|RestoVecinos] %Lista de vecinos con un vecino y el resto de la lista
+               ,FronteraVieja %Frontera inicial
+               ,FronteraNueva %Frontera final con el primer vecino
+               ):-
+
+   actualizarFrontera(NodoPadre,IDNodoVecino,CostoPaso,FronteraVieja,FronteraPasoMedio),
+
+   obtenerFrontera(NodoPadre,RestoVecinos,FronteraPasoMedio,FronteraNueva).
+
+
+
+% Actualiza la frontera con un Nodo hijo (o vecino) del Nodo padre en el
+% formato de notacion de frontera nodo(ID,CostoCamino,Camino,Heuristica)
+% Caso base:
+actualizarFrontera(nodo(IDNodoPadre,CostoCaminoPadre,CaminoPadre,_HeuristicaPadre) %Nodo padre o actual
+                  ,IDNodoHijo %ID Nodo hijo o vecino
+                  ,CostoPaso %Costo del paso del Nodo padre a Nodo hijo g()
+                  ,[] %Frontera vieja vacia (caso base)
+                  ,[nodo(IDNodoHijo,CostoCamino,CaminoNuevo,Heuristica)] %Frontera nueva con el Nodo hijo
+                  ):-
+
+    CostoCamino is CostoCaminoPadre + CostoPaso, %Nuevo costo
+
+    append([IDNodoPadre],CaminoPadre,CaminoNuevo), %Nuevo camino
+
+    calcularHeuristica(IDNodoHijo,Heuristica). %Heuristica de Nodo hijo h()
+
+
+% Actualiza la frontera con un Nodo hijo (o vecino) del Nodo padre en el
+% formato de notacion de frontera nodo(ID,CostoCamino,Camino,Heuristica)
+% Caso recursivo:
+actualizarFrontera(nodo(IDNodoPadre,CostoCaminoViejo,CaminoViejo,_HeuristicaVieja) %Nodo padre o actual
+                  ,IDNodoHijo %IDNodo hijo o vecino
+                  ,CostoPaso %Costo paso del Nodo padre al Nodo hijo g()
+                  ,FronteraVieja %Frontera vieja
+                  ,FronteraNueva %Frontera nueva con Nodo hijo
+                  ):-
+
+    CostoCamino is CostoCaminoViejo + CostoPaso,
+
+    append([IDNodoPadre],CaminoViejo,CaminoNuevo),
+
+    calcularHeuristica(IDNodoHijo,Heuristica),
+
+    reemplazarPorMejor(nodo(IDNodoHijo,CostoCamino,CaminoNuevo,Heuristica),FronteraVieja,FronteraNueva).
+
+% Convierte una lista de IDs de Nodos a una lista de acciones
+% move(IDNodo)
+convertirAccion([],[]).
+convertirAccion([Nodo|RestoCamino],[move(Nodo)|RestoPlan]):-
+    convertirAccion(RestoCamino,RestoPlan).
+
+% Invierte una lista de IDs de Nodos, Obtiene el destino final y
+% convierte la lista en una lista de acciones move(IDNodo)
+invertirYCrearPlan([Destino|RestoCamino],Plan,Destino):-
+    reverse([Destino|RestoCamino],CaminoOrdenado),
+    convertirAccion(CaminoOrdenado,Plan).
+
+
+% buscar_plan_desplazamiento(+Metas, -Plan, -Destino)
+% Llama a busquedaAEstrella con las metas, el nodo actual, los vecinos
+% del nodo actual, y al nodo actual como visitado
+buscar_plan_desplazamiento(Metas, RestoPlan, Destino):-
+    at([agent,me],IDNodoActual),
+    %write('BPD| Estoy en el nodo: '),write(IDNodoActual),nl,
+
+    generarVecinos([],IDNodoActual,Vecinos),
+
+    obtenerFrontera(nodo(IDNodoActual,0,[],0),Vecinos,[],FronteraDesordenada),
+
+    ordenar_por_f(FronteraDesordenada,FronteraOrdenada),
+
+    %write('BPD| LLAMO POR PRIMERA VEZ A BUSQUEDA A*'),nl,
+    !,busquedaAEstrella(Metas,nodo(IDNodoActual,0,[],0),FronteraOrdenada,[IDNodoActual],CaminoAMeta),
+
+    invertirYCrearPlan(CaminoAMeta,[_PrimerMove|RestoPlan],Destino).
+
+% Algoritmo A* Caso base:
+%
+% +Metas: Lista nodos meta
+% +NodoActual: Nodo actual
+% +Frontera: Lista de nodos en la frontera
+% +Visitados: Lista de nodos visitados
+% -Plan: Camino de costo minimo hacia una meta
+busquedaAEstrella(Metas,nodo(IDNodoActual,_Cc,PlanAnterior,_H),_Frontera,_Visitados,Plan):-
+
+    member(IDNodoActual,Metas),
+
+    append([IDNodoActual],PlanAnterior,Plan).
+
+% Algoritmo A* Caso recursivo:
+%
+% +Metas: Lista nodos meta
+% +NodoActual: Nodo actual
+% +Frontera: Lista de nodos en la frontera.
+% +Visitados: Lista de nodos visitados
+% -Plan: Camino de costo minimo hacia una meta
+busquedaAEstrella(Metas,_NodoActual,Frontera,Visitados,Plan):-
+
+    seleccionar(nodo(IDNodoElegido,CostoCamino,Camino,Heuristica),Frontera,FronteraReducida),
+
+    agregarVisitado(IDNodoElegido,Visitados,VisitadosConNodo),
+
+    generarVecinos(Visitados,IDNodoElegido,Vecinos),
+
+    obtenerFrontera(nodo(IDNodoElegido,CostoCamino,Camino,Heuristica),Vecinos,FronteraReducida,FronteraConVecinos),
+
+    ordenar_por_f(FronteraConVecinos,FronteraOrdenada),
+
+    busquedaAEstrella(Metas,nodo(IDNodoElegido,CostoCamino,Camino,Heuristica),FronteraOrdenada,VisitadosConNodo,Plan).
+
+
+
+% Algoritmo quick_sort para ordenar una lista de Nodos en formato de
+% frontera: nodo(ID,CostoCamino,Camino,Heuristica)
+quick_sortNodos(Lista,ListaOrdenada):-
+    q_sortNodos(Lista,[],ListaOrdenada).
+
+q_sortNodos([],Acc,Acc).
+
+q_sortNodos([Cabeza|Cola],Acc,ListaOrdenada):-
+	pivotingNodos(Cabeza,Cola,Lista1,Lista2),
+	q_sortNodos(Lista1,Acc,Lista1Ordenada),
+        q_sortNodos(Lista2,[Cabeza|Lista1Ordenada],ListaOrdenada).
+
+
+pivotingNodos(_Cabeza,[],[],[]).
+
+pivotingNodos(nodo(Id,CostoCaminoCabeza,Camino,HeuristicaCabeza),
+         [nodo(IdNodo,CostoCaminoNodo,CaminoNodo,HeuristicaNodo)|T],
+         [nodo(IdNodo,CostoCaminoNodo,CaminoNodo,HeuristicaNodo)|L],
+         G):-
+
+    CostoNodo is CostoCaminoNodo + HeuristicaNodo,
+    CostoCabeza is CostoCaminoCabeza + HeuristicaCabeza,
+
+    CostoNodo>=CostoCabeza,
+
+    pivotingNodos(nodo(Id,CostoCaminoCabeza,Camino,HeuristicaCabeza),T,L,G).
+
+pivotingNodos(nodo(Id,CostoCaminoCabeza,Camino,HeuristicaCabeza),
+         [nodo(IdNodo,CostoCaminoNodo,CaminoNodo,HeuristicaNodo)|T],
+         L,
+         [nodo(IdNodo,CostoCaminoNodo,CaminoNodo,HeuristicaNodo)|G]
+        ):-
+
+    CostoNodo is CostoCaminoNodo + HeuristicaNodo,
+    CostoCabeza is CostoCaminoCabeza + HeuristicaCabeza,
+    CostoNodo<CostoCabeza,
+
+    pivotingNodos(nodo(Id,CostoCaminoCabeza,Camino,HeuristicaCabeza),T,L,G).
+
+
+%Algoritmo quick_sort para ordenar una lista de números
+quick_sortNumeros(List,Sorted):-
+    q_sort(List,[],Sorted).
+q_sort([],Acc,Acc).
+q_sort([H|T],Acc,Sorted):-
+	pivoting(H,T,L1,L2),
+	q_sort(L1,Acc,Sorted1),q_sort(L2,[H|Sorted1],Sorted).
+
+pivoting(_H,[],[],[]).
+pivoting(H,[X|T],[X|L],G):-
+    X>=H,
+    pivoting(H,T,L,G).
+pivoting(H,[X|T],L,[X|G]):-
+    X<H,
+    pivoting(H,T,L,G).
+
+
+
+
+
+
+
+
+
+
+
+
+
