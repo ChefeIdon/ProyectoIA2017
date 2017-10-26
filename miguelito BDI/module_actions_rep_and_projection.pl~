@@ -47,7 +47,8 @@ action(abrirTumba(Tumba), %Abrir una tumba
       [has([agent,me],[potion,Pocion]),at([grave,Tumba],Pos),at([agent,me],Pos)],
        %Precondiciones: Tengo pocion, estoy en la tumba
 
-       [has([grave,Tumba],Objeto),at(Pos,Objeto)],
+       [property([agent,me],lastAction,[cast_spell(open([grave,Tumba],[potion,Pocion])),_TiempoAccion]),
+	has([grave,Tumba],Objeto),at(Pos,Objeto)],
        %Add List: Last action cast_spell? y objetos en el piso
 
        [has([agent,me],[potion,Pocion]),has([grave,Tumba],Objeto)]

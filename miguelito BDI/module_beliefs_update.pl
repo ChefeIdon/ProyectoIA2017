@@ -1,3 +1,4 @@
+
 :- module(beliefs_update,
 	  [
 	    update_beliefs/1,
@@ -6,13 +7,19 @@
 	    at/2,
 	    atPos/2,
 	    has/2,
-	    entity_descr/2
+	    entity_descr/2,
+	    atReciente/1
 	  ]).
 
-:- dynamic time/1, node/3, at/2, atPos/2, has/2, entity_descr/2.
+:-[extras_for_agents].
+
+:- dynamic time/1, node/3, at/2, atPos/2, has/2, entity_descr/2, atReciente/1.
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 2
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 0
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 1
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 7
 %
 % update_beliefs(+Perc)
 %
@@ -21,89 +28,165 @@
 % consultadon por el resto del código del agente.
 %
 
-update_beliefs(Percepcion):-
-	%write('========================================================================='),nl,
-
-	forall(member(Relacion,Percepcion),actualizar(Relacion)),
-
-	%write('UB| Voy a checkear si las entidades siguen en los nodos en que los vi'),nl,
-
-	forall(member(node(ID,Pos,Ady),Percepcion),checkear(node(ID,Pos,Ady),Percepcion)).
+update_beliefs(Perc):-
 
 
-checkear(node(IDNodo,_Pos,_Ady), Percepcion):-
-	forall(at(Entidad, IDNodo),checkearEntidad(Entidad,IDNodo,Percepcion)),
-	!.
-checkear(_Nodo, _Percepcion).
+	%Imprimio las creencias
 
-checkearEntidad(Entidad, IDNodo, Percepcion):-
-	%write('Estoy viendo a '),write(Entidad),write(' en '),write(IDNodo),write('?'),
-	member(at(Entidad,IDNodo), Percepcion),
-	%write(' SI!'),nl,
-	!.
+	%imprimirCreencias,
 
-checkearEntidad(Entidad, IDNodo, _Percepcion):-
-	retract(at(Entidad,IDNodo))
-	%write('Ya no veo a '),write(Entidad),write(' en '),write(IDNodo),nl
-	.
+	%Agrego todas las percepciones nuevas restantes
+	forall((member(Rel, Perc), noPercibido(Rel)), assert(Rel)),
+	%nl,
+	%writeln('Agrego las nuevas percepciones')
 
-actualizar(atPos(Entidad,Pos)):-
-	retractall(atPos(Entidad,_PosVectorViejo)),
-	assert(atPos(Entidad,Pos)).
-	%write(Entidad),write(' ahora esta en '),write(Pos),nl.
+	%Elimino mis creencias anteriores
+	retractall(atReciente(_)),
 
-actualizar(entity_descr(Entidad,Descripcion)):-
-	retractall(entity_descr(Entidad,_DescripcionVieja)),
-	assert(entity_descr(Entidad,Descripcion)).
-	%,write(Entidad),write(' entityDesc '),write(Descripcion),nl.
-
-actualizar(has(EntidadDuena,Entidad)):-
-	at(Entidad,_PosVieja), %Recordamos que esa entidad estaba en alguna posicion?
-	retractall(at(Entidad,_PosVieja)), %Borrar donde estaba
-	assert(has(EntidadDuena,Entidad)).
-	%,write(Entidad),write(' estaba en el piso y ahora la tiene '),write(EntidadDuena),nl. %Recordar quien la tiene
-
-actualizar(has([agent,IDAgent],[gold,IDGold])):-
-	not(has([agent,IDAgent],[gold,IDGold])),
-	assert(has([agent,IDAgent],[gold,IDGold])).
-	%,write(IDAgent),write(' ahora tiene a '),write(IDGold),nl. %Recordar que el agente posee un tesoro nuevo
-
-actualizar(has(EntidadDuena,Entidad)):-
-	not(has(EntidadDuena,Entidad)), %Borrar las entidades viejas que tenia
-	assert(has(EntidadDuena,Entidad)).
-	%,write(Entidad),write(' la tenia otra entidad y ahora la tiene '),write(EntidadDuena),nl. %Recordar nueva entidad que posee
-
-actualizar(has(EntidadDuena,Entidad)):-
-	retractall(has(EntidadDuena,_EntidadViejas)), %Borrar las entidades viejas que tenia
-	assert(has(EntidadDuena,Entidad)).
-	%,write(Entidad),write(' la sigue teniendo '),write(EntidadDuena),nl. %Recordar nueva entidad que posee
-
-actualizar(time(T)):-
-	retractall(time(_)), %Borrar tiempo anterior
-	assert(time(T)). %Recordar tiempo actual
-	%,write('Tiempo '),write(T),nl
-
-actualizar(node(Id,Pos,Ad)):-
-%	write('Nodo: '),write(Id),nl,
-	retractall(node(Id,_Pos,_Ad)), %Borrar previa conocimiento del nuevo nodo
-	assert(node(Id,Pos,Ad)). %Recordar nodo
+	%Actualizar creencias Time
+	retractall(time(_)),
+        member(time(Time), Perc),
+        assert(time(Time)),
+	nl,
+	%writeln('Actualizo el tiempo:'),
 
 
-actualizar(at(Entidad,PosNueva)):-
-	has(_AlgunaEntidad,Entidad), %Recordamos que esa entidad la tenia otro entidad?
-	retractall(has(_AlgunaEntidad,Entidad)), %Borrar quien la tenia
-	assert(at(Entidad,PosNueva)).
-	%write(Entidad),write(' la tenia alguien y la encontre en el piso en '),write(PosNueva),nl. %Recordar nueva ubicacion
+	%Actualizar todas las entidades que formaban parte de un has y ahora forman parte de un at
+	actualizarHasAt(Perc),
+	%nl,
+	%writeln('Actualizo una entidad que contenia un agente y ahora esta en el suelo.'),
 
-actualizar(at(Entidad,Pos)):-
-	not(at(Entidad,Pos)),
-	assert(at(Entidad,Pos)).
-	%,write(Entidad),write(' estaba en otra pos, y se movio a '),write(Pos),nl. %Recordar nueva ubicacion
 
-actualizar(at(Entidad,Pos)):-
-	retractall(at(Entidad,_PosVieja)), %Borrar ubicacion vieja
-	assert(at(Entidad,Pos)).
-	%,write(Entidad),write(' sigue estando en '),write(Pos),nl.
+	%Actualizar todas las entidades que formaban parte de un at y ahora forman parte de un has
+	actualizarAtHas(Perc),
+	%nl,
+	%writeln('Actualizo las entidades que estaban en el suelo y ahora las posee un agente.'),
+
+	%Actualizar Posicion de una Entidad
+	actualizarPosEntidad(Perc),
+	%nl,
+	%writeln('Actualizo las posiciones de las entidades'),
+
+	%Actualizar la tenencia de un objeto que tenia un agente viejo y ahora lo tiene un agente nuevo
+	actualizarTenenciasAgentes(Perc),
+	%nl,
+	%writeln('Actualizo la tenencia de una entidad entre agentes'),
+
+	%Actualizar las tenencias de mi propio agente.
+	actualizarMisTenencias(Perc),
+	%nl,
+
+	%Actualizar las propiedades de las entidades
+	actualizarPropEntidades(Perc),
+	%nl,
+	%writeln('Actualizar las propiedades de los agentes'),
+
+	%Actualizar posiciones entidades en rango de vision
+	actualizarEntidadesEnRango(Perc).
+	%nl.
+	%writeln('Actualizo las posiciones de las entidades en un determinado rango').
+
+
+
+actualizarHasAt(Perc):-
+	forall((member(at(Ent1,_PosEnt1),Perc),has(Agent1,Ent1)) , (retract(has(Agent1,Ent1)))),!.
+
+actualizarHasAt(_Perc):-
+	true.
+
+
+
+
+actualizarAtHas(Perc):-
+	forall((member(has(_Ent7,Ent6),Perc), at(Ent6,PosEnt6), atPos(Ent6,VectorPos6)) , (retract(at(Ent6,PosEnt6)), retract(atPos(Ent6,VectorPos6)))),!.
+
+actualizarAtHas(_Perc):-
+	true.
+
+
+actualizarPosEntidad(Perc):-
+	forall((member(at(Ent2,PosEnt2),Perc),at(Ent2,PosEnt3),atPos(Ent2,VectorPos3),PosEnt2 \= PosEnt3), (retract(at(Ent2,PosEnt3)), retract(atPos(Ent2,VectorPos3)), assert(atReciente(Ent2)))),!.
+
+actualizarPosEntidad(_Perc):-
+	true.
+
+
+
+
+actualizarTenenciasAgentes(Perc):-
+	forall((member(has(Ent3,Ent4),Perc), has(Ent5,Ent4), Ent5 \= Ent3), (retract(has(Ent5,Ent4)))),!.
+
+actualizarTenenciasAgentes(_Perc):-
+	true.
+
+
+
+actualizarMisTenencias(Perc):-
+	forall(((has([agent,me],Ent4)) , not(member(has([agent,me],Ent4),Perc))), (retract(has([agent,me],Ent4)))),!.
+actualizarMisTenencias(_Perc):-
+	true.
+
+
+actualizarPropEntidades(Perc):-
+	forall((member(entity_descr(Ent8,Props1),Perc), entity_descr(Ent8,Props2)),(retract(entity_descr(Ent8,Props2)),assert(entity_descr(Ent8,Props1)))),!.
+
+actualizarPropEntidades(_Perc):-
+	true.
+
+
+
+
+actualizarEntidadesEnRango(Perc):-
+	at([agent,me],MiNodo),
+	node(MiNodo,VNodo,_Ady),
+	findall(Ent9,(atPos(Ent9,VectorPos9), distance(VNodo,VectorPos9,Dist), Dist<10, not(member(atPos(Ent9,VectorPos9),Perc))),ListaABorrar),
+	forall((member(atPos(EntB,_vector),ListaABorrar)),(retract(atPos(EntB,_vector)),retract(at(EntB,_nodo)))),!.
+
+actualizarEntidadesEnRango(_Perc):-
+	true.
+
+
+%Si encuentro un at(E1,_), que ya tengo, estonces no lo agrego
+noPercibido(at(E1,P1)):-
+        forall((at(E2,P2),E1 = E2, P1 = P2), false).
+
+noPercibido(atPos(E1,P1)):-
+        forall((atPos(E2,P2),E1 = E2, P1 = P2), false).
+
+%noPercibido(at(E1,P1)):-
+	%forall((at(E2,P2)),(E1 \= E2)).
+        %forall((at(E2,P2),E1=E2), )
+	 %      %; (P1 \= P2))
+
+%noPercibido(atPos(E1,P1)):-
+	%forall((atPos(E2,P2)),(E1 \= E2)).
+
+noPercibido(has(E1,P1)):-
+	forall((has(E1,P2)),(P1 \= P2)).
+
+noPercibido(entity_descr(E1,P1)):-
+	forall((entity_descr(E2,_P2)), (P1 \= [], E1 \= E2)).
+
+noPercibido(node(Nodo1,_Vector1,_Ady1)):-
+        forall((node(Nodo2,_Vector2,_Ady2)), (Nodo1 \= Nodo2)).
+
+
+
+imprimirCreencias:-
+	nl,
+	forall((has([agent,me],Ent1)), (write('La entidad que tengo es: '),writeln(Ent1))),
+	forall((has([agent,NomAgent],Ent2), NomAgent \= me),
+	       (write('El agente'),write(NomAgent), write(' tiene la entidad: '),writeln(Ent2))),
+	forall((at([gold,IDOro],_Pos1)), (write('El oro que esta en el suelo es: '),writeln(IDOro))),
+	forall((at([potion,IDPot],_Pos2)), (write('La pocion que esta en el suelo es: '),writeln(IDPot))).
+
+
+
+
+
+
+
+
 
 
 

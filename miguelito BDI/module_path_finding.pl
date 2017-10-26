@@ -5,9 +5,16 @@
 
 % Predicado utilizado para escribir por consola la estructura de un nodo
 % de la frontera
-escribirFrontera(nodo(ID,CostoCamino,Camino,Heuristica)):-
-    write('Nodo: '),write(ID),write(' CostoCamino: '),write(CostoCamino),
-    write(' Camino: '),write(Camino),write(' Heuristica: '),write(Heuristica),nl.
+escribirCostoNodo(nodo(_ID,CostoCamino,_Camino,Heuristica)):-
+    Costo is CostoCamino + Heuristica,
+    write(' '),write(Costo),write(', ').
+
+escribirFrontera(Frontera):-
+    writeln('Frontera ordenada:'),
+    write('['),
+    forall(member(Nodo,Frontera),escribirCostoNodo(Nodo)),
+    writeln(']'),nl.
+
 
 
 %Recorre una frontera
@@ -58,22 +65,53 @@ generarVecinos(Visitados,Nodo,VecinosSinRepetir):-
 ordenarDistancias(DistanciasDesordenadas,DistanciasOrdenadas):-
     quick_sortNumeros(DistanciasDesordenadas,DistanciasOrdenadas).
 
+
+minimaDistancia(_Elem,[],[MinimaDistancia],MinimaDistancia).
+
+minimaDistancia(VectorActual,[IDNodoMeta|RestoNodosMeta],[],MinDistFinal):-
+    node(IDNodoMeta,VectorMeta,_Ady),
+    distance(VectorActual,VectorMeta,NuevaDist),
+    minimaDistancia(VectorActual,RestoNodosMeta,[NuevaDist],MinDistFinal),!.
+
+minimaDistancia(VectorActual,[IDNodoMeta|RestoNodosMeta],[MinDistVieja],MinDistFinal):-
+    node(IDNodoMeta,VectorMeta,_Ady),
+    distance(VectorActual,VectorMeta,NuevaDist),
+    NuevaDist =< MinDistVieja,
+    minimaDistancia(VectorActual,RestoNodosMeta,[NuevaDist],MinDistFinal),!.
+
+minimaDistancia(VectorActual,[_IDNodoMeta|RestoNodosMeta],[MinDistVieja],MinDistFinal):-
+    minimaDistancia(VectorActual,RestoNodosMeta,[MinDistVieja],MinDistFinal).
+
+
+
+
 % Obtiene las distancias de un nodo a todos los nodos que tienen un
 % tesoro (metas).
 % La heuristica elegida es Euclidiana
-obtenerDistancias(_VectorNodo,[],[]).
-obtenerDistancias(VectorNodo,[IDNodoMeta|RestoNodosMeta],[Distancia|RestoDistancias]):-
+obtenerDistancias(_VectorActual,[],MinimaDistancia,MinimaDistancia).
+
+obtenerDistancias(VectorActual,[IDNodoMeta|RestoNodosMeta],DistanciaAnterior,MinimaDistancia):-
+    writeln('Entro a Obtener distancias con:'),
+    writeln(VectorActual),writeln(IDNodoMeta),writeln(DistanciaAnterior),writeln(MinimaDistancia),
     node(IDNodoMeta,VectorMeta,_Ady),
-    distance(VectorNodo,VectorMeta,Distancia),
-    obtenerDistancias(VectorNodo,RestoNodosMeta,RestoDistancias).
+    distance(VectorActual,VectorMeta,NuevaDistancia),
+
+    minimo(NuevaDistancia,DistanciaAnterior,MinimaDistancia),
+
+    writeln('OD| Obteniendo la mejor distancia:'),
+    write('OD| Distancia menor anterior: '),writeln(DistanciaAnterior),
+    write('OD| Nueva distancia: '),writeln(NuevaDistancia),
+    write('OD| Nueva distancia menor: '),writeln(MinimaDistancia),
+
+    obtenerDistancias(VectorActual,RestoNodosMeta,[MinimaDistancia],MinimaDistancia).
 
 %Obtiene la mejor heuristica para un nodo
 %Elige la primer heuristica de una lista de heuristica ordenadas
 calcularHeuristica(IDNodo,MenorDistancia):-
+
     node(IDNodo,VectorNodo,_Ady),
     findall(IDNodoMeta,at([gold,_Nombre],IDNodoMeta),IDNodosMeta),
-    obtenerDistancias(VectorNodo,IDNodosMeta,Distancias),
-    ordenarDistancias(Distancias,[MenorDistancia|_RestoDistancia]).
+    minimaDistancia(VectorNodo,IDNodosMeta,[],MenorDistancia).
 
 %Ordena los nodos de la frontera llamando a quick_sortNodos
 %f()=g()+h()
@@ -107,9 +145,11 @@ obtenerFrontera(NodoPadre %Nodo padre
                ,[] %Frontera inicial vacia (caso base)
                ,FronteraNueva):- %Frontera final con el primer vecino
 
-   actualizarFrontera(NodoPadre,IDNodoVecino,CostoPaso,[],FronteraPasoMedio),
+    %writeln('OB| Caso base frontera vacia'),
+    actualizarFrontera(NodoPadre,IDNodoVecino,CostoPaso,[],FronteraPasoMedio),
+    %writeln('OB| Caso base frontera vacia agregue el primer vecino'),
 
-   obtenerFrontera(NodoPadre,RestoVecinos,FronteraPasoMedio,FronteraNueva).
+    obtenerFrontera(NodoPadre,RestoVecinos,FronteraPasoMedio,FronteraNueva).
 
 %Caso recursivo:
 obtenerFrontera(NodoPadre %Nodo padre
@@ -117,10 +157,12 @@ obtenerFrontera(NodoPadre %Nodo padre
                ,FronteraVieja %Frontera inicial
                ,FronteraNueva %Frontera final con el primer vecino
                ):-
+    %writeln('OB| Caso recursivo'),
+    actualizarFrontera(NodoPadre,IDNodoVecino,CostoPaso,FronteraVieja,FronteraPasoMedio),
+    %writeln('OB| Caso recursivo agregue el primer vecino'),
+    %writeln(FronteraPasoMedio),
 
-   actualizarFrontera(NodoPadre,IDNodoVecino,CostoPaso,FronteraVieja,FronteraPasoMedio),
-
-   obtenerFrontera(NodoPadre,RestoVecinos,FronteraPasoMedio,FronteraNueva).
+    obtenerFrontera(NodoPadre,RestoVecinos,FronteraPasoMedio,FronteraNueva).
 
 
 
@@ -137,6 +179,7 @@ actualizarFrontera(nodo(IDNodoPadre,CostoCaminoPadre,CaminoPadre,_HeuristicaPadr
     CostoCamino is CostoCaminoPadre + CostoPaso, %Nuevo costo
 
     append([IDNodoPadre],CaminoPadre,CaminoNuevo), %Nuevo camino
+    %writeln('AF| Caso base frontera vacia'),
 
     calcularHeuristica(IDNodoHijo,Heuristica). %Heuristica de Nodo hijo h()
 
@@ -157,7 +200,9 @@ actualizarFrontera(nodo(IDNodoPadre,CostoCaminoViejo,CaminoViejo,_HeuristicaViej
 
     calcularHeuristica(IDNodoHijo,Heuristica),
 
-    reemplazarPorMejor(nodo(IDNodoHijo,CostoCamino,CaminoNuevo,Heuristica),FronteraVieja,FronteraNueva).
+    %writeln('AF| Caso recursivo voy a agregar el primer vecino'),
+
+    insertarSinRepetir(nodo(IDNodoHijo,CostoCamino,CaminoNuevo,Heuristica),FronteraVieja,FronteraNueva).
 
 % Convierte una lista de IDs de Nodos a una lista de acciones
 % move(IDNodo)
@@ -180,12 +225,16 @@ buscar_plan_desplazamiento(Metas, RestoPlan, Destino):-
     %write('BPD| Estoy en el nodo: '),write(IDNodoActual),nl,
 
     generarVecinos([],IDNodoActual,Vecinos),
+    %writeln('BPD| Genere vecinos'),
 
-    obtenerFrontera(nodo(IDNodoActual,0,[],0),Vecinos,[],FronteraDesordenada),
+    obtenerFrontera(nodo(IDNodoActual,0,[],0),Vecinos,[],FronteraOrdenada),
+    %writeln('BPD| Obtuve frontera ordenada:'),
+    %escribirFrontera(FronteraOrdenada),
 
-    ordenar_por_f(FronteraDesordenada,FronteraOrdenada),
+    %La frontera ya la ordena "obtenerFrontera"
+    %ordenar_por_f(FronteraDesordenada,FronteraOrdenada),
 
-    %write('BPD| LLAMO POR PRIMERA VEZ A BUSQUEDA A*'),nl,
+    %writeln('BPD| LLAMO POR PRIMERA VEZ A BUSQUEDA A*'),
     !,busquedaAEstrella(Metas,nodo(IDNodoActual,0,[],0),FronteraOrdenada,[IDNodoActual],CaminoAMeta),
 
     invertirYCrearPlan(CaminoAMeta,[_PrimerMove|RestoPlan],Destino).
@@ -213,18 +262,26 @@ busquedaAEstrella(Metas,nodo(IDNodoActual,_Cc,PlanAnterior,_H),_Frontera,_Visita
 busquedaAEstrella(Metas,_NodoActual,Frontera,Visitados,Plan):-
 
     seleccionar(nodo(IDNodoElegido,CostoCamino,Camino,Heuristica),Frontera,FronteraReducida),
+    %writeln('A*| Seleccione primero'),
 
     agregarVisitado(IDNodoElegido,Visitados,VisitadosConNodo),
+    %writeln('A*| Agregue visitado'),
 
     generarVecinos(Visitados,IDNodoElegido,Vecinos),
+    %writeln('A*| Genere vecinos'),
 
-    obtenerFrontera(nodo(IDNodoElegido,CostoCamino,Camino,Heuristica),Vecinos,FronteraReducida,FronteraConVecinos),
+    obtenerFrontera(nodo(IDNodoElegido,CostoCamino,Camino,Heuristica),Vecinos,FronteraReducida,FronteraOrdenada),
+    %writeln('A*| Obtuve frontera ordenada:'),
+    %escribirFrontera(FronteraOrdenada),
 
-    ordenar_por_f(FronteraConVecinos,FronteraOrdenada),
+    %La frontera ya la ordena "obtenerFrontera"
+    %ordenar_por_f(FronteraConVecinos,FronteraOrdenada),
 
     busquedaAEstrella(Metas,nodo(IDNodoElegido,CostoCamino,Camino,Heuristica),FronteraOrdenada,VisitadosConNodo,Plan).
 
 
+
+/*
 
 % Algoritmo quick_sort para ordenar una lista de Nodos en formato de
 % frontera: nodo(ID,CostoCamino,Camino,Heuristica)
@@ -281,6 +338,64 @@ pivoting(H,[X|T],[X|L],G):-
 pivoting(H,[X|T],L,[X|G]):-
     X<H,
     pivoting(H,T,L,G).
+
+*/
+
+
+% Inserta ORDENADAMENTE en una lista (menor a mayor)
+% El formato de los elementos depende del problema (hay que cambiarlos)
+insertar(Elem,[],[Elem]).
+insertar(nodo(ID1,CostoCamino1,Camino1,Heuristica1),
+         [nodo(ID2,CostoCamino2,Camino2,Heuristica2)|Resto],
+         [nodo(ID1,CostoCamino1,Camino1,Heuristica1),nodo(ID2,CostoCamino2,Camino2,Heuristica2)|Resto]):-
+
+    Val1 is CostoCamino1 + Heuristica1,
+    Val2 is CostoCamino2 + Heuristica2,
+    Val1 =< Val2,!.
+insertar(Elem,[Cabeza|Resto],[Cabeza|ListaOrd]):-
+    insertar(Elem,Resto,ListaOrd).
+
+
+
+% Inserta si no existe nodo con mismo id
+%
+insertarSinRepetir(nodo(ID,CostoCamino1,Camino1,Heuristica1),Lista,ListaNueva):-
+
+    not(member(nodo(ID,_CostoCamino2,_Camino2,_Heuristica2),Lista)),
+    %writeln('ISR| No hay un nodo con el mismo id, inserto'),
+    insertar(nodo(ID,CostoCamino1,Camino1,Heuristica1),Lista,ListaNueva),!.
+% Existe nodo con mismo id pero el nuevo a agregar es menor
+%
+insertarSinRepetir(nodo(ID,CostoCamino1,Camino1,Heuristica1),Lista,ListaNueva):-
+
+    member(nodo(ID,CostoCamino2,Camino2,Heuristica2),Lista),
+    Val1 is CostoCamino1 + Heuristica1,
+    Val2 is CostoCamino2 + Heuristica2,
+    Val1 =< Val2,
+    %writeln('ISR| Hay un nodo con el mismo id pero el nuevo es mejor, borro e inserto'),
+    borrar(nodo(ID,CostoCamino2,Camino2,Heuristica2),Lista,ListaSinNodo),
+    insertar(nodo(ID,CostoCamino1,Camino1,Heuristica1),ListaSinNodo,ListaNueva),!.
+
+% La unica otra posibilidad es que exista nodo con mismo id
+% pero este es menor al que quiero agregar, no hago nada.
+%
+insertarSinRepetir(_Elem,Lista,Lista).
+   %:-writeln('ISR| Hay un nodo con el mismo id pero el nuevo es peor no hago nada').
+
+
+
+
+%Borra el elemento X de una lista si existe
+borrar(_X,[],[]).
+borrar(X,[X|Ys],Ys).
+borrar(X,[Y|Ys],[Y|Zs]):-
+    borrar(X,Ys,Zs).
+
+%Mantiene el minimo elemento en una lista
+minimo(Elem,[],Elem).
+minimo(Elem,[MinV],MinV):- MinV =< Elem,!.
+minimo(Elem,[_MinV],Elem).
+
 
 
 
