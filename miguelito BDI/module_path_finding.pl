@@ -280,68 +280,6 @@ busquedaAEstrella(Metas,_NodoActual,Frontera,Visitados,Plan):-
     busquedaAEstrella(Metas,nodo(IDNodoElegido,CostoCamino,Camino,Heuristica),FronteraOrdenada,VisitadosConNodo,Plan).
 
 
-
-/*
-
-% Algoritmo quick_sort para ordenar una lista de Nodos en formato de
-% frontera: nodo(ID,CostoCamino,Camino,Heuristica)
-quick_sortNodos(Lista,ListaOrdenada):-
-    q_sortNodos(Lista,[],ListaOrdenada).
-
-q_sortNodos([],Acc,Acc).
-
-q_sortNodos([Cabeza|Cola],Acc,ListaOrdenada):-
-	pivotingNodos(Cabeza,Cola,Lista1,Lista2),
-	q_sortNodos(Lista1,Acc,Lista1Ordenada),
-        q_sortNodos(Lista2,[Cabeza|Lista1Ordenada],ListaOrdenada).
-
-
-pivotingNodos(_Cabeza,[],[],[]).
-
-pivotingNodos(nodo(Id,CostoCaminoCabeza,Camino,HeuristicaCabeza),
-         [nodo(IdNodo,CostoCaminoNodo,CaminoNodo,HeuristicaNodo)|T],
-         [nodo(IdNodo,CostoCaminoNodo,CaminoNodo,HeuristicaNodo)|L],
-         G):-
-
-    CostoNodo is CostoCaminoNodo + HeuristicaNodo,
-    CostoCabeza is CostoCaminoCabeza + HeuristicaCabeza,
-
-    CostoNodo>=CostoCabeza,
-
-    pivotingNodos(nodo(Id,CostoCaminoCabeza,Camino,HeuristicaCabeza),T,L,G).
-
-pivotingNodos(nodo(Id,CostoCaminoCabeza,Camino,HeuristicaCabeza),
-         [nodo(IdNodo,CostoCaminoNodo,CaminoNodo,HeuristicaNodo)|T],
-         L,
-         [nodo(IdNodo,CostoCaminoNodo,CaminoNodo,HeuristicaNodo)|G]
-        ):-
-
-    CostoNodo is CostoCaminoNodo + HeuristicaNodo,
-    CostoCabeza is CostoCaminoCabeza + HeuristicaCabeza,
-    CostoNodo<CostoCabeza,
-
-    pivotingNodos(nodo(Id,CostoCaminoCabeza,Camino,HeuristicaCabeza),T,L,G).
-
-
-%Algoritmo quick_sort para ordenar una lista de números
-quick_sortNumeros(List,Sorted):-
-    q_sort(List,[],Sorted).
-q_sort([],Acc,Acc).
-q_sort([H|T],Acc,Sorted):-
-	pivoting(H,T,L1,L2),
-	q_sort(L1,Acc,Sorted1),q_sort(L2,[H|Sorted1],Sorted).
-
-pivoting(_H,[],[],[]).
-pivoting(H,[X|T],[X|L],G):-
-    X>=H,
-    pivoting(H,T,L,G).
-pivoting(H,[X|T],L,[X|G]):-
-    X<H,
-    pivoting(H,T,L,G).
-
-*/
-
-
 % Inserta ORDENADAMENTE en una lista (menor a mayor)
 % El formato de los elementos depende del problema (hay que cambiarlos)
 insertar(Elem,[],[Elem]).

@@ -43,15 +43,15 @@ action(stay, [at([agent, me], Pos), at([inn, _Inn], Pos)], [], []). %'stay' shou
 % << TODO: DEFINIR OTRAS ACCIONES >>
 %
 
-action(abrirTumba(Tumba), %Abrir una tumba
-      [has([agent,me],[potion,Pocion]),at([grave,Tumba],Pos),at([agent,me],Pos)],
-       %Precondiciones: Tengo pocion, estoy en la tumba
+action(abrirEntidad(NombreE), %Abrir una tumba
+      [has([agent,me],[potion,Pocion]),at([Entidad,NombreE],Pos),Entidad\=agent,at([agent,me],Pos)],
+       %Precondiciones: Tengo pocion, estoy en la entidad
 
-       [has([grave,Tumba],Objeto),at(Pos,Objeto)],
+       [has([Entidad,NombreE],Objeto),at(Pos,Objeto)],
        %Add List: Last action cast_spell? y objetos en el piso
 
-       [has([agent,me],[potion,Pocion]),has([grave,Tumba],Objeto)]
-       %Del List: No tengo mas la pocion, la tumba vacia
+       [has([agent,me],[potion,Pocion]),has([Entidad,NombreE],Objeto)]
+       %Del List: No tengo mas la pocion, la entidad vacia
       ).
 
 action(
@@ -63,7 +63,6 @@ action(
     [has([home,MiCasa],[gold,Tesoro])], %Add List: Mi casa ahora tiene el tesoro
 
     [has([agent,me],[gold,Tesoro])]). %Del List: Yo ya no tengo el tesoro
-
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
