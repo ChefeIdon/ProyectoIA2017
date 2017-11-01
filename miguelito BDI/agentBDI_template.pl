@@ -621,10 +621,30 @@ planify(abrirEntidad(NombreE),Plan):- %Cuando no tengo una pocion
 % ACLARACIÓN: Puede modificarse la implementación actual de
 % planify/2, si se lo considera apropiado.
 
+%AGREGADO
+escribirCreencias(Archivo):-
+	tell(Archivo),
+	write("--------------Comienzo--------------"),nl,
+	forall(at(Ent,Nod), (write(at(Ent,Nod)),nl)),nl,
+	forall(atPos(Ent,Vec), (write(atPos(Ent,Vec)),nl)),nl,
+	forall(has(Ent1,Ent2), (write(has(Ent1,Ent2)),nl)),nl,
+	forall(entity_descr(Entidad,Desc), (write(entity_descr(Entidad,Desc)),nl)),nl,
+%	forall(node(Id,Pos,Ady), (write(node(Id,Pos,Ady)),nl)),nl,
+	write("-----------------Fin----------------"),nl.
+	
+escribirNodos(Archivo):-
+	tell(Archivo),
+	write("--------------Comienzo--------------"),nl,
+	forall(node(Id,_Pos,_Ady), (write(Id),nl)),nl,
+	write("-----------------Fin----------------"),nl.
+	
+cantNodos(N):-
+	findall(Id,node(Id,_Pos,_Ady),Lista),
+	longitud(Lista,N).
 
 
-
-
+longitud([],0).
+longitud([_|Xs],N):- longitud(Xs,K), N is K+1.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 % next_primitive_action(+Plan, -NextAction, -RemainingPlan)

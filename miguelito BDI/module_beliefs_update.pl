@@ -24,68 +24,67 @@
 update_beliefs(Percepcion):-
 	
 	/*
-		El agente comienza olvidando todo lo recordado que es modificado en la nueva percepcion
+		el agente olvida todo lo que recordaba
 	*/
-	
-	%Si percibe un nodo que ya habia visto antes
-	%olvida el nodo visto.
-	forall((member(node(IdNodo,_VectNuevo,_Ady),Percepcion),node(IdNodo,_VectViejo,_Ady)),retractall(node(IdNodo,_VectViejo,_Ady))),
-	
-	%Si percibe un nodo que ya habia visto algo en su ubicación y que ya habia visto algo en su posición (vector)
-	%Olvida lo que habia visto en esa ubicación y lo que habia visto en esa posición (vector).
-	forall((member(node(IdNodo,VectNuevo,_Ady),Percepcion),at(_EntVieja,IdNodo),atPos(_EntVieja,VectNuevo)),(retractall(at(_EntVieja,IdNodo)),retractall(atPos(_EntVieja,VectNuevo)))),
-	
-	%Si percibe la descripcion de una entidad que ya la habia recordado antes
-	%Olvida la descripción anterior.
-	forall((member(entity_descr(Entidad,_PosNueva),Percepcion),entity_descr(Entidad,_PosVieja)),retractall(entity_descr(Entidad,_PosVieja))),
-		
-	%Si percibe una entidad en el piso que estaba en posesión de otra entidad
-	%Se olvida de esa posesión y cualquier posición (vector) anterior de esa entidad.
-	forall((member(at(Entidad,_PosNueva),Percepcion),has(_EntVieja,Entidad)),(retractall(has(_EntVieja,Entidad)),retractall(atPos(Entidad,_VectViejo)))),
-	
-	%Si percibe una entidad en el piso que estaba en otro lugar del piso
-	%Se olvida de la ubicación anterior y de la posición (vector) anterior.
-	forall((member(at(Entidad,_PosNueva),Percepcion),at(Entidad,_PosVieja)),(retractall(at(Entidad,_PosVieja)),retractall(atPos(Entidad,_VectViejo)))),
-	
-	%Si percibe una entidad en una posición (vector) que estaba en otra posición (vector)
-	%Se olvida de la ubicación anterior y de la posición (vector) anterior.
-	forall((member(atPos(Entidad,_VectNuevo),Percepcion),atPos(Entidad,_VectViejo)),(retractall(at(Entidad,_PosVieja)),retractall(atPos(Entidad,_VectViejo)))),
-	
-	%Si percibe que una entidad, que creia que estaba en el piso y en otra posición (vector), es poseida por otra entidad
-	%Olvida que estaba en el piso y su posición (vector) anterior.
-	forall((member(has(_EntNueva,Entidad),Percepcion),at(Entidad,_PosVieja),atPos(Entidad,_VectViejo)),(retractall(at(Entidad,_PosVieja)),retractall(atPos(Entidad,_VectViejo)))),
-	
-	%Si percibe una entidad que ya habia visto antes
-	%la olvida para actualizar su posesión.
-	forall((member(has(Entidad,_EntNueva),Percepcion),has(Entidad,_EntVieja)),retractall(has(Entidad,_EntVieja))),
-		
-	%Olvida el tiempo
+	write('Olvido'),nl,
 	retractall(time(_)),
+	forall(member(Relacion,Percepcion),olvidar(Relacion)),
 	
+	write('Recuerdo'),nl,
 	/*
-		El agente continua recordando todo lo percibido
+		el agente recuerda todo lo percibido
 	*/
+	forall(member(Relacion,Percepcion),recordar(Relacion)),
+	write(Percepcion).
+
+olvidar(at(Entidad,_)) :-			% <- Si percibe una entidad en el piso
+	has(_,Entidad),					% <- que estaba en posesión de otra entidad
+	retractall(has(_,Entidad)).		% <- Se olvida de esa posesión.
+
+olvidar(at(Entidad,_)) :-			% <- Si percibe una entidad en el piso
+	at(Entidad,_),					% <- que estaba en otro lugar del piso
+	retractall(at(Entidad,_)),		% <- Se olvida de la ubicación anterior.
+	retractall(atPos(Entidad,_)).	% <- Se olvida de la posición (vector) anterior.
+
+olvidar(atPos(Entidad,_)) :-		% <- Si percibe una entidad en una posición (vector)
+	atPos(Entidad,_),				% <- que estaba en otra posición (vector)
+	retractall(at(Entidad,_)),		% <- Se olvida de la ubicación anterior.
+	retractall(atPos(Entidad,_)).	% <- Se olvida de la posición (vector) anterior.
 	
-	%Por cada relación percibida
-	%La recuerda.
-	forall(member(Relacion,Percepcion),assert(Relacion)).
-
+olvidar(atPos(Entidad,_)) :-		% <- Si percibe una entidad en el piso
+	has(_,Entidad),					% <- que estaba en posesión de otra entidad
+	retractall(has(_,Entidad)).		% <- Se olvida de esa posesión.
 	
+olvidar(has(_,Entidad)) :-			% <- Si percibe que una entidad es poseida por otra entidad
+	at(Entidad,_), 					% <- que creia que estaba en el piso
+	atPos(Entidad,_),				% <- que estaba en otra posición (vector)
+	retractall(at(Entidad,_)), 		% <- Olvida que estaba en el piso
+	retractall(atPos(Entidad,_)).	% <- Olvida su posición (vector) anterior
 
-/* 
-igual al anterior pero desglozado
-olvidar(node(Id,_,_)) :-
-	at(_,Id),
-	retractall(at(_,Id)).
+olvidar(has(Entidad,_)) :-			% <- Si percibe una entidad
+	has(Entidad,_), 				% <- que ya habia visto antes
+	retractall(has(Entidad,_)).		% <- la olvida.
 
-olvidar(node(_,Pos,_)) :-
-	atPos(_,Pos),
-	retractall(atPos(_,Pos)).
-*/
+%olvidar(node(Id,_,_)) :-			% <- Si percibe un nodo
+%	node(Id,_,_),					% <- que ya habia visto antes
+%	retractall(node(Id,_,_)).		% <- olvida el nodo visto.
 
+%olvidar(node(Id,Pos,_)) :-			% <- Si percibe un nodo
+%	at(_,Id),						% <- que ya habia visto algo en su ubicación
+%	atPos(_,Pos),					% <- y que ya habia visto algo en su posición (vector)
+%	retractall(at(_,Id)),			% <- Olvido lo que habia visto en esa ubicación
+%	retractall(atPos(_,Pos)).		% <- Olvido lo que habia visto en esa posición (vector)
 
+olvidar(entity_descr(Entidad,_)) :-			% <- Si percibe la descripcion de una entidad
+	entity_descr(Entidad,_),				% <- que ya la habia recordado antes
+	retractall((entity_descr(Entidad,_))).	% <- Olvido la descripción anterior
 
-	
+olvidar(X).					% <- Si percibe algo nuevo no hace nada
+
+recordar(X):-				% <- Si percibe algo  
+	X,!.					% <- que ya recuerda no hace nada.
+
+recordar(X) :- assert(X). 	% <- Si percibe algo nuevo lo recuerda.
 	
 	
 	

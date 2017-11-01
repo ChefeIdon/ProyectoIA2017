@@ -1,0 +1,629 @@
+
+:- dynamic writes_disabled/0.
+
+
+:- multifile prolog_list_goal/1.
+
+prolog_list_goal(pce_principal:send_implementation(A, _, _)) :-
+    pce_portray:
+    (    !,
+	(   B=pce_principal:send_implementation(A, F, E),
+	    method_from_id(A,  (C->D)),
+	    clause(B, G)
+	->  format('~N~n% XPCE Method ~w->~w:~n~n', [C, D]),
+	    portray_clause((E->F:-G)),
+	    nl
+	;   format('No XPCE method implementation for id=~p~n', [A])
+	)
+    ).
+prolog_list_goal(pce_principal:get_implementation(A, _, _, _)) :-
+    pce_portray:
+    (    !,
+	(   B=pce_principal:get_implementation(A, G, F, E),
+	    method_from_id(A, <-(C, D)),
+	    clause(B, H)
+	->  format('~N~n% XPCE Method ~w<-~w:~n~n', [C, D]),
+	    portray_clause((E= <-(F, G):-H)),
+	    nl
+	;   format('No XPCE method implementation for id=~p~n', [A])
+	)
+    ).
+
+:- dynamic expand_answer/2.
+:- multifile expand_answer/2.
+
+
+disable_writes :-
+	redefine_system_predicate(write(_)),
+	assert(write(_)),
+	redefine_system_predicate(writeln(_)),
+	assert(writeln(_)),
+	redefine_system_predicate(nl),
+	assert(nl),
+	assert(writes_disabled).
+
+next_primitive_action([A|B], D, E) :-
+	clause(achieved(A), _),
+	achieved(A), !,
+	write('Action '),
+	write(A),
+	write(' achieved.'),
+	nl,
+	remove_executed_ancestors(B, C),
+	next_primitive_action(C, D, E).
+next_primitive_action([A|B], A, C) :-
+	primitive(A),
+	remove_executed_ancestors(B, C), !.
+next_primitive_action([A|C], E, F) :-
+	if_fails_do(clause(planify(A, _), _),
+		    throw_exception((write(A), write(' is undefined. Declare it as primitive or planify it.')))), !,
+	(   planify(A, B)
+	;   write('Planning for '),
+	    write(A),
+	    write(' failed.'),
+	    nl,
+	    fail
+	),
+	(   last_element(A, B),
+	    append(B, C, D)
+	;   append(B, [[A]|C], D)
+	),
+	writeln('          -- expanded into -> '),
+	nl,
+	write(D),
+	nl,
+	nl,
+	next_primitive_action(D, E, F).
+
+desire(get([potion, A]), 'quiero apoderarme de todas las pociones!!') :-
+	at([potion, A], _).
+desire(get([gold, A]), 'quiero apoderarme de muchos tesoros!') :-
+	has([grave, _], [gold, A]).
+desire(get([gold, A]), 'quiero apoderarme de muchos tesoros!') :-
+	at([gold, A], _).
+desire(rest, 'quiero estar descansado') :-
+	property([agent, me], life, A),
+	A<100.
+desire(depositarTesoro(A), 'quiero depositar todos mis tesoros!') :-
+	has([agent, me], [gold, A]).
+desire(ir_a_casa, 'quiero defender mi casa!').
+desire(move_at_random, 'quiero estar siempre en movimiento!').
+
+:- multifile prolog_clause_name/2.
+
+prolog_clause_name(A, C) :-
+    pce_portray:
+    (   clause(B, _, A),
+	user:prolog_predicate_name(B, C)
+    ).
+
+:- dynamic expand_query/4.
+:- multifile expand_query/4.
+
+
+longitud([], 0).
+longitud([_|A], B) :-
+	longitud(A, C),
+	B is C+1.
+
+:- multifile prolog_predicate_name/2.
+
+prolog_predicate_name(pce_principal:send_implementation(A, _, _), C) :-
+    pce_portray:
+    (   method_from_id(A, B),
+	atom_from_method(B, C)
+    ).
+prolog_predicate_name(pce_principal:get_implementation(A, _, _, _), C) :-
+    pce_portray:
+    (   method_from_id(A, B),
+	atom_from_method(B, C)
+    ).
+
+try_catch(A, _) :-
+	call(A), !.
+try_catch(_, A) :-
+	call(A),
+	fail.
+
+:- dynamic file_search_path/2.
+:- multifile file_search_path/2.
+
+file_search_path(image, library('trace/icons')).
+file_search_path(library, A) :-
+	library_directory(A).
+file_search_path(swi, A) :-
+	system:current_prolog_flag(home, A).
+file_search_path(foreign, swi(B)) :-
+    system:
+    (   current_prolog_flag(arch, A),
+	atom_concat('lib/', A, B)
+    ).
+file_search_path(foreign, swi(A)) :-
+    system:
+    (   (   current_prolog_flag(windows, true)
+	->  A=bin
+	;   A=lib
+	)
+    ).
+file_search_path(path, C) :-
+    system:
+    (   getenv('PATH', A),
+	(   current_prolog_flag(windows, true)
+	->  atomic_list_concat(B, ;, A)
+	;   atomic_list_concat(B, :, A)
+	),
+	'$member'(C, B),
+	'$no-null-bytes'(C)
+    ).
+file_search_path(user_profile, app_preferences('.')).
+file_search_path(app_preferences, app_data('.')).
+file_search_path(app_data, B) :-
+    '$toplevel':
+    (   current_prolog_flag(windows, true),
+	catch(win_folder(appdata, A), _, fail),
+	atom_concat(A, '/SWI-Prolog', B),
+	(   exists_directory(B)
+	->  true
+	;   catch(make_directory(B), _, fail)
+	)
+    ).
+file_search_path(app_preferences, A) :-
+	'$toplevel':catch(expand_file_name(~, [A]), _, fail).
+file_search_path(autoload, library('.')).
+file_search_path(pack, app_data(pack)).
+file_search_path(pack, swi(pack)).
+file_search_path(library, A) :-
+	'$pack':pack_dir(_, prolog, A).
+file_search_path(foreign, A) :-
+	'$pack':pack_dir(_, foreign, A).
+file_search_path(pce, A) :-
+	link_xpce:pcehome_(A).
+file_search_path(library, pce('prolog/lib')).
+file_search_path(foreign, pce(B)) :-
+    link_xpce:
+    (   current_prolog_flag(arch, A),
+	atom_concat('lib/', A, B)
+    ).
+file_search_path(pce_boot, 'c:/program files/swipl/xpce/prolog/boot').
+file_search_path(demo, pce('prolog/demo')).
+file_search_path(contrib, pce('prolog/contrib')).
+file_search_path(image, pce(bitmaps)).
+file_search_path(config, B) :-
+    pce_config:
+    (   get(@pce, application_data, A),
+	get(A, path, B)
+    ).
+
+remove_executed_ancestors([[_]|A], B) :- !,
+	remove_executed_ancestors(A, B).
+remove_executed_ancestors(A, A).
+
+escribirCreencias(A) :-
+	tell(A),
+	write("--------------Comienzo--------------"),
+	nl,
+	forall(at(B, C),
+	       ( write(at(B, C)),
+		 nl
+	       )),
+	nl,
+	forall(atPos(B, D),
+	       ( write(atPos(B, D)),
+		 nl
+	       )),
+	nl,
+	forall(has(E, F),
+	       ( write(has(E, F)),
+		 nl
+	       )),
+	nl,
+	forall(entity_descr(G, H),
+	       ( write(entity_descr(G, H)),
+		 nl
+	       )),
+	nl,
+	write("-----------------Fin----------------"),
+	nl.
+
+:- thread_local thread_message_hook/3.
+:- dynamic thread_message_hook/3.
+:- volatile thread_message_hook/3.
+
+
+implies(A, B) :-
+	call(A), !,
+	call(B).
+implies(_, _).
+
+achieved(rest) :-
+	property([agent, me], life, B),
+	property([agent, me], lifeTotal, A),
+	C is A+ -10,
+	B>C.
+achieved(get(A)) :-
+	has([agent, me], A).
+achieved(goto(A)) :-
+	at([agent, me], A).
+achieved(drop(A)) :-
+	not(has([agent, me], A)).
+achieved(depositarTesoro(C)) :-
+	property([agent, me], home, A),
+	at([home, A], B),
+	at([agent, me], B),
+	has([home, A], [gold, C]).
+achieved(abrirEntidad(A)) :-
+	at([B, A], C),
+	B\=agent,
+	at([agent, me], C),
+	property([agent, me],
+		 lastAction,
+		 cast_spell(open([B, A], [potion, _]), _)).
+
+if_fails_do(A, _) :-
+	call(A), !.
+if_fails_do(_, A) :-
+	call(A),
+	fail.
+
+:- dynamic name/1.
+
+
+start_ag_instance(B) :-
+	A=pepito,
+	C=..[A, B],
+	agent_init(C),
+	assert(ag_name(C)),
+	agent_reset,
+	connect,
+	run,
+	disconnect.
+
+:- multifile message_property/2.
+
+
+feasible(A) :-
+	dynamic_state_rels(B),
+	project(A, B, _).
+
+run :-
+	get_percept(A),
+	ag_name(_),
+	update_beliefs(A),
+	display_ag,
+	nl, !,
+	deliberate,
+	planning_and_execution(B),
+	do_action(B),
+	run, !.
+
+:- dynamic intention/1.
+
+intention(move_at_random).
+
+:- dynamic message_hook/3.
+:- multifile message_hook/3.
+
+message_hook('$aborted', _, _) :-
+    pce_host:
+    (   current_prolog_flag(xpce, true),
+	send(@display, reset),
+	fail
+    ).
+
+:- dynamic pce_post_expansion_hook/2.
+:- multifile pce_post_expansion_hook/2.
+
+
+throw_exception(A) :-
+	write('EXCEPTION: '),
+	dont_fail(A),
+	break.
+
+si(A) :-
+	start_ag_instance(A).
+
+escribirNodos(A) :-
+	tell(A),
+	write("--------------Comienzo--------------"),
+	nl,
+	forall(node(B, _, _),
+	       ( write(B),
+		 nl
+	       )),
+	nl,
+	write("-----------------Fin----------------"),
+	nl.
+
+cantNodos(C) :-
+	findall(A, node(A, _, _), B),
+	longitud(B, C).
+
+:- dynamic exception/3.
+:- multifile exception/3.
+
+
+deliberate :-
+	once(high_priority(A, B)),
+	not(intention(A)),
+	write('High-priority Desire: '),
+	write(A),
+	write(', since '),
+	writeln(B),
+	nl,
+	retractall(intention(_)),
+	retractall(plan(_)),
+	assert(intention(A)),
+	assert(plan([A])).
+deliberate :-
+	(   not(intention(_)),
+	    writeln('There is no intention '),
+	    nl
+	;   intention(A),
+	    achieved(A),
+	    write('Intention '),
+	    write(A),
+	    writeln(' achieved.')
+	;   plan([]),
+	    writeln('Plan consumed.')
+	;   (   plan(B),
+		B\=[],
+		not(feasible(B))
+	    ;   not(plan(_))
+	    ),
+	    writeln('Current plan became infeasible.'),
+	    nl
+	), !,
+	findall(C, desire(C, _), D),
+	write('Desires: '),
+	writeln(D),
+	nl,
+	select_intention(E, F, D),
+	write('New Intention: '),
+	write(E),
+	write(', since '),
+	writeln(F),
+	nl,
+	retractall(intention(_)),
+	retractall(plan(_)),
+	assert(intention(E)),
+	assert(plan([E])).
+deliberate :-
+	intention(A),
+	write('Current Intention: '),
+	writeln(A),
+	nl.
+deliberate :-
+	deliberate.
+
+:- dynamic resource/3.
+:- multifile resource/3.
+
+
+:- dynamic plan/1.
+
+
+:- dynamic pce_pre_expansion_hook/2.
+:- multifile pce_pre_expansion_hook/2.
+
+
+dont_fail(A) :-
+	call(A).
+dont_fail(_).
+
+:- dynamic prolog_exception_hook/4.
+:- multifile prolog_exception_hook/4.
+
+prolog_exception_hook(error(A, context(D, B)), error(A, context(prolog_stack(J), B)), G, C) :-
+    prolog_stack:
+    (   current_prolog_flag(backtrace, true),
+	(   atom(C)
+	->  debug(backtrace,
+		  'Got uncaught (guard = ~q) exception ~p (Ctx0=~p)',
+		  [C, A, D]),
+	    stack_guard(C)
+	;   prolog_frame_attribute(C, predicate_indicator, E),
+	    debug(backtrace,
+		  'Got exception ~p (Ctx0=~p, Catcher=~p)',
+		  [A, D, E]),
+	    stack_guard(E)
+	),
+	(   current_prolog_flag(backtrace_depth, F)
+	->  F>0
+	;   F=20
+	),
+	get_prolog_backtrace(G, F, H),
+	debug(backtrace, 'Stack = ~p', [H]),
+	clean_stack(H, I),
+	join_stacks(D, I, J)
+    ).
+
+start_ag :-
+	A=miguelito,
+	agent_init(A),
+	assert(ag_name(A)),
+	agent_reset,
+	connect,
+	run,
+	disconnect.
+
+:- dynamic prolog_load_file/2.
+:- multifile prolog_load_file/2.
+
+
+planify(get(A), B) :-
+	at(A, C),
+	B=[goto(C), pickup(A)].
+planify(get(A), C) :-
+	has([B, D], A),
+	B\=agent,
+	C=[abrirEntidad(D), get(A)].
+planify(ir_a_casa, B) :-
+	property([agent, me], home, A),
+	at([home, A], C),
+	B=[goto(C)].
+planify(goto(A), B) :-
+	buscar_plan_desplazamiento([A], B, _), !.
+planify(rest, A) :-
+	at([inn, _], B),
+	A=[goto(B), stay].
+planify(stay, [noop, stay]).
+planify(move_at_random, C) :-
+	findall(A, node(A, _, _), B),
+	random_member(D, B),
+	C=[goto(D)].
+planify(drop(A), B) :-
+	has([agent, me], A),
+	B=[drop(A)].
+planify(depositarTesoro(A), C) :-
+	has([agent, me], [gold, A]),
+	property([agent, me], home, B),
+	at([home, B], D),
+	C=[goto(D), drop([gold, A])].
+planify(abrirEntidad(A), C) :-
+	at([B, A], D),
+	B\=agent,
+	has([agent, me], [potion, E]),
+	C=[goto(D), cast_spell(open([B, A], [potion, E]))].
+planify(abrirEntidad(A), D) :-
+	at([B, A], E),
+	B\=agent,
+	not(has([agent, me], [potion, C])),
+	at([potion, C], _),
+	D=[get([potion, C]), goto(E), cast_spell(open([B, A], [potion, C]))].
+
+select_intention(rest, 'voy a recargar antes de encarar otro deseo', A) :-
+	member(rest, A),
+	property([agent, me], life, B),
+	B<75.
+select_intention(get(A), 'es el objeto en la tumba mas cercana de los que deseo obtener', B) :-
+	findall(D,
+		( member(get(A), B),
+		  has([grave, C], A),
+		  at([grave, C], D)
+		),
+		E),
+	buscar_plan_desplazamiento(E, _, F),
+	member(get(A), B),
+	has([grave, C], A),
+	at([grave, C], F).
+select_intention(get(A), 'es el objeto más cercano de los que deseo obtener', B) :-
+	findall(C,
+		( member(get(A), B),
+		  at(A, C)
+		),
+		D),
+	buscar_plan_desplazamiento(D, _, E),
+	member(get(A), B),
+	at(A, E).
+select_intention(depositarTesoro(A), 'quiero depositar todos mis tesoros!', B) :-
+	has([agent, me], [gold, A]),
+	member(depositarTesoro(A), B).
+select_intention(rest, 'no tengo otra cosa más interesante que hacer', A) :-
+	member(rest, A).
+select_intention(ir_a_casa, 'no tengo otra que hacer, voy a defender mi casa', A) :-
+	member(ir_a_casa, A).
+select_intention(move_at_random, 'no tengo otra cosa más interesante que hacer', A) :-
+	member(move_at_random, A).
+
+:- dynamic high_priority/2.
+
+high_priority(rest, 'necesito descansar') :-
+	property([agent, me], life, A),
+	A<50,
+	once(at([inn, _], _)).
+
+:- dynamic ag_name/1.
+
+ag_name(miguelito).
+
+:- dynamic prolog_event_hook/1.
+:- multifile prolog_event_hook/1.
+
+
+s :-
+	start_ag.
+
+planning_and_execution(B) :-
+	retract(plan(A)),
+	write('Following plan: '),
+	writeln(A),
+	nl,
+	next_primitive_action(A, B, C),
+	write('Next action: '),
+	writeln(B),
+	assert(plan(C)).
+
+:- dynamic prolog_file_type/2.
+:- multifile prolog_file_type/2.
+
+prolog_file_type(pl, prolog).
+prolog_file_type(prolog, prolog).
+prolog_file_type(qlf, prolog).
+prolog_file_type(qlf, qlf).
+prolog_file_type(A, executable) :-
+	system:current_prolog_flag(shared_object_extension, A).
+
+:- dynamic portray/1.
+:- multifile portray/1.
+
+portray(A) :-
+    pce_portray:
+    (   A= @B,
+	object(A), !,
+	(   send(A, '_instance_of'(var))
+	->  get(A, '_value', C),
+	    format('@~w(= ~p)', [B, C])
+	;   get(A, '_class_name', D),
+	    format('@~w/~w', [B, D])
+	)
+    ).
+portray(pce_principal:send_implementation(B, D, A)) :-
+    pce_portray:
+    (   object(A), !,
+	method_from_id(B,  (C->_)),
+	format('Send-method on ~p: ~w->~p', [A, C, D])
+    ).
+portray(pce_principal:get_implementation(B, D, A, E)) :-
+    pce_portray:
+    (   object(A), !,
+	method_from_id(B, <-(C, _)),
+	format('Get-method on ~p: ~w<-~p --> ~p',
+	       [A, C, D, E])
+    ).
+
+:- dynamic library_directory/1.
+:- multifile library_directory/1.
+
+library_directory(B) :-
+    '$parms':
+    (   cached_library_directory(local, A=lib, A),
+	B=A
+    ).
+library_directory(B) :-
+    '$parms':
+    (   cached_library_directory(user,
+				 expand_file_name('~/lib/prolog', [A]),
+				 A),
+	B=A
+    ).
+library_directory(B) :-
+    '$parms':
+    (   cached_library_directory(system,
+				 absolute_file_name(swi(library), A),
+				 A),
+	B=A
+    ).
+library_directory(B) :-
+    '$parms':
+    (   cached_library_directory(clp,
+				 absolute_file_name(swi('library/clp'), A),
+				 A),
+	B=A
+    ).
+
+primitive(move(_)).
+primitive(pickup(_)).
+primitive(drop(_)).
+primitive(attack(_)).
+primitive(cast_spell(_)).
+primitive(noop).
