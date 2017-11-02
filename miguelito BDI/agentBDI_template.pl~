@@ -196,6 +196,16 @@ desire(get([potion, TrName]), 'quiero apoderarme de todas las pociones!!'):-
 desire(get([gold, TrName]), 'quiero apoderarme de muchos tesoros!'):-
 	has([grave,_Tumba],[gold, TrName]).
 
+%_____________________________________________________________________
+%
+% Get treasure en home enemigo
+%
+desire(get([gold, TrName]), 'quiero apoderarme de los tesoros enemigos!'):-
+      property([agent,me],home,MiCasa),
+      has([home,Casa],[gold, TrName]),
+      Casa \= MiCasa.
+
+
 
 
 %_____________________________________________________________________
@@ -430,14 +440,26 @@ select_intention(get(Obj), 'es el objeto mas cercano (en tumba o no)', Desires):
             at(Obj,ObjMasCercano)
         ).
 
+select_intention(get([gold,Tesoro]), 'es un tesoro en la base enemiga', Desires):-
+      member(get([gold,Tesoro]),Desires),
+      has([home,Casa],[gold,Tesoro]),
+      property([agent,me],home,MiCasa),
+      MiCasa \= Casa.
+
+
 %_____________________________________________________________________
 %
 % Depositar mis tesoros
 %
-
 select_intention(depositarTesoro(Tesoro), 'quiero depositar todos mis tesoros!', Desires):-
       has([agent,me],[gold,Tesoro]),
       member(depositarTesoro(Tesoro), Desires).
+
+
+select_intention(explorar,' voy a explorar todo el mapa',Desires):-
+      member(explorar,Desires).
+
+
 
 %_____________________________________________________________________
 %
@@ -534,10 +556,8 @@ achieved(defenderse_de(Agente)):-
       achieved(huir(Agente)) ;
       achieved(dormir(Agente,_Pocion)).
 
-
-
-
-
+achieved(explorar):-
+      nodosNoExplorados([]).
 
 
 % << TODO: COMPLETAR DEFINICIóN >>
@@ -633,6 +653,11 @@ planning_and_execution(Action):-
 % considerada. Analizar según la acción que se esté planificando,
 % si es deseable brindar soluciones alternativas.
 
+
+planify(explorar,Plan):-
+      nodosNoExplorados(Nodos),
+      random_member(UnNodo,Nodos),
+      Plan=[goto(UnNodo)].
 
 
 planify(get(Obj), Plan):- % Planificación para obtener de un objeto que yace en el suelo
@@ -835,10 +860,6 @@ nodosNoExplorados(ListaNodos):-
       findall(IDNodo,(node(_ID,_Vector,Ady),member([IDNodo,_Costo],Ady)),NodosAdy),
       findall(Nodo,(member(Nodo,NodosAdy),not(node(Nodo,_V,_A))),NodosNoExplorados),
       sort(NodosNoExplorados,ListaNodos).
-
-
-
-
 
 % << TODO: COMPLETAR DEFINICIóN >>
 %

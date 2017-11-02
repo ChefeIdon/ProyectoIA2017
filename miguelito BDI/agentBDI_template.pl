@@ -196,6 +196,16 @@ desire(get([potion, TrName]), 'quiero apoderarme de todas las pociones!!'):-
 desire(get([gold, TrName]), 'quiero apoderarme de muchos tesoros!'):-
 	has([grave,_Tumba],[gold, TrName]).
 
+%_____________________________________________________________________
+%
+% Get treasure en home enemigo
+%
+desire(get([gold, TrName]), 'quiero apoderarme de los tesoros enemigos!'):-
+      property([agent,me],home,MiCasa),
+      has([home,Casa],[gold, TrName]),
+      Casa \= MiCasa.
+
+
 
 
 %_____________________________________________________________________
@@ -430,11 +440,17 @@ select_intention(get(Obj), 'es el objeto mas cercano (en tumba o no)', Desires):
             at(Obj,ObjMasCercano)
         ).
 
+select_intention(get([gold,Tesoro]), 'es un tesoro en la base enemiga', Desires):-
+      member(get([gold,Tesoro]),Desires),
+      has([home,Casa],[gold,Tesoro]),
+      property([agent,me],home,MiCasa),
+      MiCasa \= Casa.
+
+
 %_____________________________________________________________________
 %
 % Depositar mis tesoros
 %
-
 select_intention(depositarTesoro(Tesoro), 'quiero depositar todos mis tesoros!', Desires):-
       has([agent,me],[gold,Tesoro]),
       member(depositarTesoro(Tesoro), Desires).
@@ -648,7 +664,7 @@ planify(get(Obj), Plan):- % Planificación para obtener de un objeto que yace en 
 	at(Obj, Pos),
 	Plan = [goto(Pos), pickup(Obj)].
 
-planify(get(Obj),Plan):- % Planificación para obtener un objeto en una tumba
+planify(get(Obj),Plan):- % Planificación para obtener un objeto en una edificacion (tumba o casa)
       has([Entidad,NombreE],Obj),
       Entidad \= agent,
       Plan=[abrirEntidad(NombreE),get(Obj)].
