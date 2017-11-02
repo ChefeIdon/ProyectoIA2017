@@ -84,14 +84,14 @@ run:-
 
 deliberate:-
 
-	once(high_priority(HPDesire, Explanation)),	 % Si existe un deseo HPDesire de alta prioridad:
+	once(high_priority(HPDesire, _Explanation)),	 % Si existe un deseo HPDesire de alta prioridad:
 						         % (NO es un <<<CHOICE POINT>>>: una falla en la
 						         % siguiente línea no debería buscar alternativas).
 
 	not(intention(HPDesire)),        % y no es el caso que coincide con la intención actual,
 
-	write('High-priority Desire: '), write(HPDesire), write(', since '),
-        writeln(Explanation), nl,
+	%write('High-priority Desire: '), %write(HPDesire), %write(', since '),
+        %%writeln(Explanation), nl,
 
 	retractall(intention(_)),     % (Estratégicamente colocado luego del "choice point", para que,
 	retractall(plan(_)),	      %	 ante la búsqueda de una intención alternativa (por no haberse encontrado un plan
@@ -102,17 +102,17 @@ deliberate:-
 
 deliberate:-       % Si
 
-	(   not(intention(_)),
+	(   not(intention(_))
                              % actualmente no hay intención
-	    writeln('There is no intention '), nl
+	    %writeln('There is no intention '), nl
 	;                                          % o
 	    intention(Int),
-	    achieved(Int),                         % la intención corriente fue lograda
-            write('Intention '), write(Int), writeln(' achieved.')
+	    achieved(Int)                         % la intención corriente fue lograda
+            %write('Intention '), %write(Int), %writeln(' achieved.')
 	;					   % o
 
-	    plan([]),                              % el plan para para la intención actual fue consumido
-	    writeln('Plan consumed.')
+	    plan([])                              % el plan para para la intención actual fue consumido
+	    %writeln('Plan consumed.')
 	;                                          % o
 	    (
 
@@ -123,19 +123,19 @@ deliberate:-       % Si
 	        not(plan(_))                                  % no hay plan. Esto ocurre si se descubre que el plan actual es no
 	                                                      % factible al intentar obtener, sin éxito, el (sub) plan para la
 	                                                      % siguiente acción de alto nivel (falla el next_primitive_action).
-	    ),
-	    writeln('Current plan became infeasible.'), nl
+	    )
+	    %writeln('Current plan became infeasible.'), nl
 	),
 
 	!,
 
 	findall(Desire, desire(Desire, _Explanation), Desires),  % Calcular el conjunto de deseos
-	write('Desires: '), writeln(Desires),nl,
-	select_intention(NewInt, NewExpl, Desires),   % Seleccionar una intención
+	%write('Desires: '), %writeln(Desires),nl,
+	select_intention(NewInt, _NewExpl, Desires),   % Seleccionar una intención
 	                                              % (deseo que el agente se compromete a lograr)
 	                                              % <<<CHOICE POINT>>> (Posibilidad de backtracking)
 
-	write('New Intention: '), write(NewInt), write(', since '), writeln(NewExpl), nl,
+	%write('New Intention: '), %write(NewInt), %write(', since '), %writeln(NewExpl), nl,
 
 	retractall(intention(_)),  % (Estrategicamente colocado luego del "choice point", para que,
 	retractall(plan(_)),	   % ante la búsqueda de una intención alternativa (por no haberse encontrado un plan
@@ -235,7 +235,22 @@ desire(ir_a_casa,'quiero defender mi casa!').
 
 desire(move_at_random, 'quiero estar siempre en movimiento!').
 
+desire(defenderme_de([agent,UnAgente]), 'me estan atacando! debo decidir que hacer'):-
 
+      property([agent,me],home,MiCasa),
+      property([agent,UnAgente],home,CasaEnemigo), % Hay algun agente en el mapa?
+
+      UnAgente \= me,
+      MiCasa \= CasaEnemigo, % Es un enemigo?
+
+      atPos([agent,me],MiPos),
+      atPos([agent,UnAgente],SuPos),
+      % Esta en rango de ataque?
+      pos_in_attack_range(MiPos,SuPos).
+
+
+desire(explorar, 'quiero explorar todo el mapa!'):-
+      nodosNoExplorados([]).
 
 % << TODO: DEFINIR OTROS DESEOS >>
 %
@@ -261,13 +276,44 @@ desire(move_at_random, 'quiero estar siempre en movimiento!').
 % impresa por pantalla.
 :- dynamic high_priority/2.
 
+/*
+high_priority(rest, 'necesito descansar urgentemente D:'):-  % runs low of stamina
+
+	property([agent, me], life, St),
+	St < 30, % running low of stamina...
+
+	once(at([inn, _HName], _Pos)). % se conoce al menos una posada
+
+*/
+
+
+high_priority(defenderme_de([agent,UnAgente]), 'hay un enemigo cerca! debo decidir que hacer'):-
+
+      property([agent,me],home,MiCasa),
+      property([agent,UnAgente],home,CasaEnemigo), % Hay algun agente en el mapa?
+
+      UnAgente \= me,
+      MiCasa \= CasaEnemigo, % Es un enemigo?
+
+      property([agent,UnAgente],life,HPEnemigo),
+      HPEnemigo > 0,
+
+      atPos([agent,me],MiPos),
+      atPos([agent,UnAgente],SuPos),
+
+      % Esta en rango de ataque?
+      writeln('Hay alun enemigo cerca?'),
+      pos_in_attack_range(MiPos,SuPos),
+      writeln('Hay enemigos cerca!!!!!').
 
 high_priority(rest, 'necesito descansar'):-  % runs low of stamina
 
 	property([agent, me], life, St),
-	St < 50, % running low of stamina...
+	St < 60, % running low of stamina...
 
 	once(at([inn, _HName], _Pos)). % se conoce al menos una posada
+
+
 
 
 % << TODO: DEFINIR >>
@@ -301,6 +347,20 @@ high_priority(rest, 'necesito descansar'):-  % runs low of stamina
 % viable, o agotarlas a todas.
 
 
+select_intention(defenderme_de(_Agente),' quiero defenderme!',_Desires):-
+      property([agent,me],home,MiCasa),
+      property([agent,UnAgente],home,CasaEnemigo), % Hay algun agente en el mapa?
+
+      UnAgente \= me,
+      MiCasa \= CasaEnemigo, % Es un enemigo?
+
+      property([agent,UnAgente],life,HPEnemigo),
+      HPEnemigo > 0,
+
+      atPos([agent,me],MiPos),
+      atPos([agent,UnAgente],SuPos),
+      % Esta en rango de ataque?
+      pos_in_attack_range(MiPos,SuPos).
 
 %_____________________________________________________________________
 %
@@ -312,14 +372,33 @@ high_priority(rest, 'necesito descansar'):-  % runs low of stamina
 select_intention(rest, 'voy a recargar antes de encarar otro deseo', Desires):-
 	member(rest, Desires),
 	property([agent, me], life, St),
-	St < 75.
+	St < 80.
+
 
 
 %_____________________________________________________________________
 %
-% Conseguir un objeto en una tumba
+% Conseguir una pocion que se halla tirado en el suelo
 %
 % De todos los posibles objetos tirados en el suelo que el agente desea
+% tener, selecciono como intención obtener aquel que se encuentra más
+% cerca.
+
+
+select_intention(get([potion,Pocion]), 'es el objeto más cercano de los que deseo obtener', Desires):-
+
+	findall(ObjPos,(member(get([potion,Pocion]), Desires),at([potion,Pocion], ObjPos)),Metas),
+        % Obtengo posiciones de todos los objetos meta tirados en el suelo.
+
+	buscar_plan_desplazamiento(Metas, _Plan, CloserObjPos),
+	member(get([potion,Pocion]), Desires),
+        at([potion,Pocion], CloserObjPos).
+
+%_____________________________________________________________________
+%
+% Conseguir un objeto mas cercano
+%
+% De todos los posibles objetos que el agente desea
 % tener, selecciono como intención obtener aquel que se encuentra más
 % cerca.
 
@@ -351,31 +430,6 @@ select_intention(get(Obj), 'es el objeto mas cercano (en tumba o no)', Desires):
             at(Obj,ObjMasCercano)
         ).
 
-
-
-
-
-%_____________________________________________________________________
-%
-% Conseguir un objeto que se halla tirado en el suelo
-%
-% De todos los posibles objetos tirados en el suelo que el agente desea
-% tener, selecciono como intención obtener aquel que se encuentra más
-% cerca.
-/*
-
-select_intention(get(Obj), 'es el objeto más cercano de los que deseo obtener', Desires):-
-
-	findall(ObjPos,(member(get(Obj), Desires),at(Obj, ObjPos)),Metas),
-        % Obtengo posiciones de todos los objetos meta tirados en el suelo.
-
-	buscar_plan_desplazamiento(Metas, _Plan, CloserObjPos),
-	member(get(Obj), Desires),
-        at(Obj, CloserObjPos).
-
-*/
-
-
 %_____________________________________________________________________
 %
 % Depositar mis tesoros
@@ -384,11 +438,6 @@ select_intention(get(Obj), 'es el objeto más cercano de los que deseo obtener', 
 select_intention(depositarTesoro(Tesoro), 'quiero depositar todos mis tesoros!', Desires):-
       has([agent,me],[gold,Tesoro]),
       member(depositarTesoro(Tesoro), Desires).
-
-
-
-
-
 
 %_____________________________________________________________________
 %
@@ -458,7 +507,35 @@ achieved(abrirEntidad(NombreE)):-
       at([agent,me],Pos),
       property([agent,me]
               ,lastAction
-              ,cast_spell( open([Entidad,NombreE],[potion,_Pocion]) ,_TiempoAccion)).
+              ,cast_spell( open([Entidad,NombreE],[potion,Pocion]) ,_TiempoAccion)),
+
+      retract(has([agent,me],[potion,Pocion])).
+
+achieved(huir(Agente)):-
+      atPos([agent,me],MiPos),
+      atPos(Agente,PosEnemigo),
+      not(pos_in_attack_range(MiPos,PosEnemigo)).
+
+achieved(atacar(Agente)):-
+      property([agent,me]
+              ,lastAction
+              ,[attack(Agente),_TiempoAccion]).
+
+achieved(dormir(Agente,Pocion)):-
+      property(Agente,life,HPEnemigo),
+      HPEnemigo is 0,
+      property([agent,me]
+              ,lastAction
+              ,cast_spell( sleep(Agente,Pocion) ,_TiempoAccion)),
+      retract(has([agent,me],Pocion)).
+
+achieved(defenderse_de(Agente)):-
+      achieved(atacar(Agente)) ;
+      achieved(huir(Agente)) ;
+      achieved(dormir(Agente,_Pocion)).
+
+
+
 
 
 
@@ -493,9 +570,9 @@ planning_and_execution(Action):-
 
 	retract(plan(Plan)),      % Ejecutar siguiente acción del plan.
 
-	write('Following plan: '), writeln(Plan), nl,
+	%write('Following plan: '), %writeln(Plan), nl,
 	next_primitive_action(Plan, Action, RestOfPlan),
-	write('Next action: '), writeln(Action),
+	%write('Next action: '), %writeln(Action),
 	assert(plan(RestOfPlan)).
 
 
@@ -634,7 +711,132 @@ planify(abrirEntidad(NombreE),Plan):- %Cuando no tengo una pocion
 
       at([potion,Pocion],PocionMasCercana),
 
-      Plan=[get([potion,PocionMasCercana]),goto(PosE),cast_spell(open([Entidad,NombreE],[potion,Pocion]))].
+      Plan=[get([potion,Pocion]),goto(PosE),cast_spell(open([Entidad,NombreE],[potion,Pocion]))].
+
+
+calcularNodoParaHuir(MiPos,PosEnemigo,NodoAlejado):-
+      PosEnemigo > MiPos, % El enemigo se encuentra en el sector de arriba a la derecha
+      node(MiPos,VectorNodo,_), % Obtengo el vector de mi nodo actual
+      % Obtengo todos los nodos que estan a distancia 11
+      findall(Nodo,(node(Nodo,Vector,_),distance(Vector,VectorNodo,D)),NodosCercanos),
+      D =< 11,
+      % Ordeno los nodos cercanos de menor a mayor
+      sort(NodosCercanos,[NodoAlejado|_Resto]),!.
+calcularNodoParaHuir(MiPos,PosEnemigo,NodoAlejado):-
+      PosEnemigo =< MiPos, % El enemigo se encuentra en el sector de abajo a la izquierda
+      node(MiPos,VectorNodo,_), % Obtengo el vector de mi nodo actual
+      % Obtengo todos los nodos que estan a distancia 11
+      findall(Nodo,(node(Nodo,Vector,_),distance(Vector,VectorNodo,D)),NodosCercanos),
+      D =< 11,
+      % Ordeno los nodos cercanos de menor a mayor
+      sort(NodosCercanos,[NodoAlejado|_Resto]),!.
+calcularNodoParaHuir(MiPos,_PosEnemigo,NodoAlejado):- % Huir a un nodo random
+      node(MiPos,VectorNodo,_), % Obtengo el vector de mi nodo actual
+      % Obtengo todos los nodos que estan a distancia 11
+      findall(Nodo,(node(Nodo,Vector,_),distance(Vector,VectorNodo,D)),NodosCercanos),
+      D =< 11,
+      random_member(NodoAlejado,NodosCercanos).
+
+
+
+planify(huir(Agente),Plan):-
+      %write('Planificando atacar '),writeln(Agente),
+      %at(Agente,PosEnemigo),
+      %at([agent,me],MiPos),
+      Agente \= [agent,me],
+      property([agent,me],home,MiCasa),
+      at(MiCasa,Nodo),
+      %calcularNodoParaHuir(MiPos,PosEnemigo,NodoAlejado),
+      writeln('Voy a huir hacia mi casa'),
+      Plan=[goto(Nodo)].
+
+planify(atacar(Agente),Plan):-
+      %write('Planificando atacar '),writeln(Agente),
+      atPos(Agente,PosEnemigo),
+      atPos([agent,me],MiPos),
+      Agente \= [agent,me],
+      %writeln('Esta en rango de ataque?'),
+      pos_in_attack_range(MiPos,PosEnemigo),
+      %writeln('No esta en rango de ataque'),
+      Plan=[attack(Agente)].
+
+planify(dormir(Agente,Pocion),Plan):-
+      %write('Planificando dormir a '),write(Agente),write(' con '),writeln(Pocion),
+      atPos(Agente,PosEnemigo),
+      atPos([agent,me],MiPos),
+      Agente \= [agent,me],
+      %writeln('Esta en rango de ataque?'),
+      pos_in_attack_range(MiPos,PosEnemigo),
+      %writeln('No esta en rango de ataque'),
+      Plan=[cast_spell(sleep(Agente,Pocion))].
+
+
+
+
+planify(defenderme_de(Agente),Plan):-
+
+      property([agent,me],life,MiHP),
+      property(Agente,life,HPEnemigo),
+      % Obtuve la vida de cada agente
+
+      property([agent,me],skill,MiXP),
+      property(Agente,skill,XPEnemigo),
+      % Obtuve la experiencia de cada agente
+
+      findall([potion,Pocion],has([agent,me],[potion,Pocion]),MisPociones),
+      findall([potion,Pocion],has(Agente,[potion,Pocion]),PocionesEnemigo),
+      % Obtuve las pociones de cada agente
+
+      % Decido el plan en base a estos datos
+      decidir_AtacarHuir(MiHP,MiXP,MisPociones,Agente,HPEnemigo,XPEnemigo,PocionesEnemigo,Plan).
+
+
+
+decidir_AtacarHuir(MiHP,_MiXP,[],Agente,HPEnemigo,XPEnemigo,[],Plan):-
+      % Peor caso: el enemigo tiene mucha mas vida que yo
+      HPNueva is MiHP - 100 - XPEnemigo,
+      HPNueva < HPEnemigo,
+      writeln('Decido atacar o huir: Ninguno tiene pociones, yo tengo muy poca vida'),
+      Plan=[huir(Agente)],!.
+
+decidir_AtacarHuir(_MiHP,MiXP,[],Agente,_HPEnemigo,XPEnemigo,[],Plan):-
+      % Caso en que ninguno tiene pociones: calculo posible ataque
+      FuerzaA is MiXP + 50,
+      ResistA is XPEnemigo + 50,
+      % Si el ataque es malo huyo
+      FuerzaA < ResistA,
+      writeln('Decido atacar o huir: Ninguno tiene pociones, calculo un ataque y es malo'),
+      Plan=[huir(Agente)],!.
+
+decidir_AtacarHuir(_MiHP,MiXP,[],Agente,_HPEnemigo,XPEnemigo,[],Plan):-
+      % Caso en que ninguno tiene pociones: calculo posible ataque
+      FuerzaA is MiXP + 50,
+      ResistA is XPEnemigo + 50,
+      % Si el ataque es malo huyo
+      FuerzaA >= ResistA,
+      writeln('Decido atacar o huir: Ninguno tiene pociones, calculo un ataque y es bueno'),
+      Plan=[atacar(Agente)],!.
+
+decidir_AtacarHuir(_MiHP,_MiXP,[Pocion|_RestoP],Agente,_HPEnemigo,_XPEnemigo,_PocionesEnemigo,Plan):-
+      % Caso en el que yo tengo una pocion
+      Plan=[dormir(Agente,Pocion)],
+      writeln('Decido atacar o huir: yo tengo al menos una pocion, lo duermo')
+      ,!.
+
+decidir_AtacarHuir(_MiHP,_MiXP,[],Agente,_HPEnemigo,_XPEnemigo,[_Pocion|_RestoPocion],Plan):-
+      % Caso en que ninguno tiene pociones: calculo posible ataque
+      Plan=[huir(Agente)],
+      writeln('Decido atacar o huir: yo no tengo pociones pero el enemigo si, huyo').
+
+decidir_AtacarHuir(_MiHP,_MiXP,_MisPociones,Agente,_HPEnemigo,_XPEnemigo,_PocionesEnemigo,[huir(Agente)]).
+
+
+nodosNoExplorados(ListaNodos):-
+      findall(IDNodo,(node(_ID,_Vector,Ady),member([IDNodo,_Costo],Ady)),NodosAdy),
+      findall(Nodo,(member(Nodo,NodosAdy),not(node(Nodo,_V,_A))),NodosNoExplorados),
+      sort(NodosNoExplorados,ListaNodos).
+
+
 
 
 
@@ -651,7 +853,7 @@ escribirCreencias(Archivo):-
 	forall(atPos(Ent,Vec), (write(atPos(Ent,Vec)),nl)),nl,
 	forall(has(Ent1,Ent2), (write(has(Ent1,Ent2)),nl)),nl,
 	forall(entity_descr(Entidad,Desc), (write(entity_descr(Entidad,Desc)),nl)),nl,
-%	forall(node(Id,Pos,Ady), (write(node(Id,Pos,Ady)),nl)),nl,
+	forall(node(Id,Pos,Ady), (write(node(Id,Pos,Ady)),nl)),nl,
 	write("-----------------Fin----------------"),nl.
 
 escribirNodos(Archivo):-
@@ -717,7 +919,7 @@ next_primitive_action([Action | RestOfPlan], NextAction, RemainingPlan):-
 
 	achieved(Action), % Action fue lograda.
 	!,
-	write('Action '), write(Action), write(' achieved.'),nl,
+	%write('Action '), %write(Action), %write(' achieved.'),nl,
 	remove_executed_ancestors(RestOfPlan, CleanRestOfPlan),
 	next_primitive_action(CleanRestOfPlan, NextAction, RemainingPlan).
 
@@ -766,9 +968,9 @@ next_primitive_action([HLAction | RestOfPlan], Action, RemainingPlan):-
 	),
 
 	%'High-level action ' HLAction ' expanded into '
-	%write(HLAction), write(' -- expanded into -> '), write(SubPlan),nl,
-	writeln('          -- expanded into -> '), nl,
-	write(LowerLevelPlan), nl, nl,
+	%%write(HLAction), %write(' -- expanded into -> '), %write(SubPlan),nl,
+	%writeln('          -- expanded into -> '), nl,
+	%write(LowerLevelPlan), nl, nl,
 
 	next_primitive_action(LowerLevelPlan, Action, RemainingPlan).
 

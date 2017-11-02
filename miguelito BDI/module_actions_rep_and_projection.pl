@@ -65,6 +65,29 @@ action(
     [has([agent,me],[gold,Tesoro])]). %Del List: Yo ya no tengo el tesoro
 
 
+action(
+    atacar(Agente), %Depositar un tesoro
+
+    [],
+    %Precondiciones: Ninguna
+
+    [ property([agent,me],last_action,[attack(Agente),_AlgunTiempo])], %Add List: Mi ultima accion fue atacar
+
+    []). %Del List: Vacia
+
+
+action(
+    dormir(Agente,Pocion), %Depositar un tesoro
+
+    [ has([agent,me],Pocion) ],
+    %Precondiciones: Ninguna
+
+    [property([agent,me],last_action,[cast_spell(sleep(Agente, Pocion)),_AlgunTiempo])], %Add List: Mi ultima accion fue atacar
+
+    [ has([agent,me],Pocion) ]). %Del List: Ya no tengo la pocion
+
+
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 % action_descr(-ActionDescr).

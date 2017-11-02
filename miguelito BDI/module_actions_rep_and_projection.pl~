@@ -43,16 +43,15 @@ action(stay, [at([agent, me], Pos), at([inn, _Inn], Pos)], [], []). %'stay' shou
 % << TODO: DEFINIR OTRAS ACCIONES >>
 %
 
-action(abrirTumba(Tumba), %Abrir una tumba
-      [has([agent,me],[potion,Pocion]),at([grave,Tumba],Pos),at([agent,me],Pos)],
-       %Precondiciones: Tengo pocion, estoy en la tumba
+action(abrirEntidad(NombreE), %Abrir una tumba
+      [has([agent,me],[potion,Pocion]),at([Entidad,NombreE],Pos),Entidad\=agent,at([agent,me],Pos)],
+       %Precondiciones: Tengo pocion, estoy en la entidad
 
-       [property([agent,me],lastAction,[cast_spell(open([grave,Tumba],[potion,Pocion])),_TiempoAccion]),
-	has([grave,Tumba],Objeto),at(Pos,Objeto)],
+       [has([Entidad,NombreE],Objeto),at(Pos,Objeto)],
        %Add List: Last action cast_spell? y objetos en el piso
 
-       [has([agent,me],[potion,Pocion]),has([grave,Tumba],Objeto)]
-       %Del List: No tengo mas la pocion, la tumba vacia
+       [has([agent,me],[potion,Pocion]),has([Entidad,NombreE],Objeto)]
+       %Del List: No tengo mas la pocion, la entidad vacia
       ).
 
 action(
@@ -64,6 +63,32 @@ action(
     [has([home,MiCasa],[gold,Tesoro])], %Add List: Mi casa ahora tiene el tesoro
 
     [has([agent,me],[gold,Tesoro])]). %Del List: Yo ya no tengo el tesoro
+
+
+action(
+    atacar(Agente), %Depositar un tesoro
+
+    [],
+    %Precondiciones: Ninguna
+
+    [ property([agent,me],last_action,[attack(Agente),_AlgunTiempo])], %Add List: Mi ultima accion fue atacar
+
+    []). %Del List: Vacia
+
+
+action(
+    dormir(Agente,Pocion), %Depositar un tesoro
+
+    [ has([agent,me],Pocion) ],
+    %Precondiciones: Ninguna
+
+    [ property( [agent,me],
+		last_action,
+		[cast_spell(sleep(Agente,Pocion)),_AlgunTiempo]
+	      )
+    ], %Add List: Mi ultima accion fue atacar
+
+    [ has([agent,me],Pocion) ]. %Del List: Ya no tengo la pocion
 
 
 

@@ -44,7 +44,7 @@ update_beliefs(Percepcion):-
 	      - si se recordaba a una entidad que tenia a otra entidad y ahora no la tiene mas
 	*/
 	forall(member(node(ID,Pos,Ady),Percepcion), checkearNodos(node(ID,Pos,Ady),Percepcion)),
-	forall(member(has(Entidad1,Entidad2),Percepcion), checkearPosesion(has(Entidad1,Entidad2),Percepcion)).
+	forall(member(has(Duenio,_Objeto),Percepcion), checkearPosesion(Duenio,Percepcion)).
 
 
 
@@ -56,23 +56,23 @@ checkearNodos(_Nodo, _Percepcion).
 
 
 
-checkearPosesion(has(Dueño,Objeto), Percepcion):-
+checkearPosesion(Duenio, Percepcion):-
 	% Para todas las entidades (que veo ahora) que recordaban que tenian algun objeto, checkeo si los siguen teniendo
-	forall(at(Dueño, Objeto),checkearHas(Dueño,Objeto,Percepcion)),
+	forall(has(Duenio, Objeto),checkearHas(Duenio,Objeto,Percepcion)),
 	!.
-checkearPosesion(_Has, _Percepcion).
+checkearPosesion(_Duenio, _Percepcion).
 
 
 
 
 % checkeo si una entidad sigue tienendo a otra entidad como lo recordaba
-checkearHas(Dueño, Objeto, Percepcion):-
+checkearHas(Duenio, Objeto, Percepcion):-
 	%write('Estoy viendo a '),write(Dueño),write(' con '),write(Objeto),write(' en su poder?'),
-	member(has(Dueño,Objeto), Percepcion),
+	member(has(Duenio,Objeto), Percepcion),
 	%writeln(' SI!'),
 	!.
-checkearHas(Dueño, Objeto, _Percepcion):-
-	retract(has(Dueño,Objeto)).
+checkearHas(Duenio, Objeto, _Percepcion):-
+	retract(has(Duenio,Objeto)).
 	%write(' Ya no veo a '),write(Dueño),write(' con '),write(Objeto),writeln(' en su poder.').
 
 
@@ -83,7 +83,8 @@ checkearAt(Entidad, IDNodo, Percepcion):-
 	%writeln(' SI!'),
 	!.
 checkearAt(Entidad, IDNodo, _Percepcion):-
-	retract(at(Entidad,IDNodo)).
+	retract(at(Entidad,IDNodo)),
+	retract(atPos(Entidad,_)).
 	%write(' Ya no veo a '),write(Entidad),write(' en '),writeln(IDNodo).
 
 %------------------------------
@@ -112,9 +113,11 @@ olvidar(has(_,Entidad)) :-		% <- Si percibe que una entidad es poseida por otra 
 	retractall(at(Entidad,_)),	% <- Olvida que estaba en el piso
 	retractall(atPos(Entidad,_)).	% <- Olvida su posiciÃ³n (vector) anterior
 
-olvidar(has(Entidad,_)) :-		% <- Si percibe una entidad
-	has(Entidad,_),			% <- que ya habia visto antes
-	retractall(has(Entidad,_)).	% <- la olvida.
+olvidar(has(DuenioNuevo,Entidad)) :-		% <- Si percibe una entidad con objeto
+	has(DuenioViejo,Entidad),
+	DuenioNuevo \= DuenioViejo,
+	                                         % <- que ya recordaba que tenia otra entidad
+	retractall(has(DuenioViejo,Entidad)).	% <- olvida al duenio viejo
 
 %olvidar(node(Id,_,_)) :-		% <- Si percibe un nodo
 %	node(Id,_,_),			% <- que ya habia visto antes
