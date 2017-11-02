@@ -174,25 +174,22 @@ deliberate:-            % Si llega acá significa que falló el next_primitive_act
 % string con una descripción narrada (breve) de dichas razones,
 % que luego puede ser impresa por pantalla.
 
+
 %_____________________________________________________________________
 %
 % Get potion at position
 %
-% Si recuerdo que una pocion dado se encuentra tirado en el piso, tener
+% Si recuerdo que una pocion se encuentra tirada en el piso, tener
 % esa pocion es una meta.
-
 desire(get([potion, TrName]), 'quiero apoderarme de todas las pociones!!'):-
 	at([potion, TrName], _PosTr).
-
-
 
 %_____________________________________________________________________
 %
 % Get treasure en tumba
 %
-% Si recuerdo que un tesoro dado se encuentra tirado en el piso, tener
+% Si recuerdo que un tesoro se encuentra en una tumba, tener
 % ese tesoro es una meta.
-
 desire(get([gold, TrName]), 'quiero apoderarme de muchos tesoros!'):-
 	has([grave,_Tumba],[gold, TrName]).
 
@@ -200,14 +197,13 @@ desire(get([gold, TrName]), 'quiero apoderarme de muchos tesoros!'):-
 %
 % Get treasure en home enemigo
 %
+% Si recuerdo que un tesoro se encuentra en el Home enemigo, tener
+% tesoro es una meta.
+%
 desire(get([gold, TrName]), 'quiero apoderarme de los tesoros enemigos!'):-
       property([agent,me],home,MiCasa),
       has([home,Casa],[gold, TrName]),
       Casa \= MiCasa.
-
-
-
-
 %_____________________________________________________________________
 %
 % Get treasure at position
@@ -218,12 +214,11 @@ desire(get([gold, TrName]), 'quiero apoderarme de los tesoros enemigos!'):-
 desire(get([gold, TrName]), 'quiero apoderarme de muchos tesoros!'):-
 	at([gold, TrName], _PosTr).
 
-
 %_____________________________________________________________________
 %
 % Rest
-
-
+%
+% Descansar cuando tengo menos de 100 de vida es una meta
 desire(rest, 'quiero estar descansado'):-
 	property([agent, me], life, St),
 	St < 100.
@@ -231,20 +226,37 @@ desire(rest, 'quiero estar descansado'):-
 %_____________________________________________________________________
 %
 % Depositar tesoros
-
+%
+% Si tengo algun tesoro en mi mochila, depositar el tesoro en mi Home
+% es una meta
+%
 desire(depositarTesoro(Tesoro), 'quiero depositar todos mis tesoros!'):-
       has([agent,me],[gold,Tesoro]).
 
 
+%_____________________________________________________________________
+%
+% Ir a casa
+%
+% Ir a mi Home para defenderlo de posibles saqueos es una meta
+%
 desire(ir_a_casa,'quiero defender mi casa!').
 
 %_____________________________________________________________________
 %
 % Move at Random
 %
-
 desire(move_at_random, 'quiero estar siempre en movimiento!').
 
+
+%_____________________________________________________________________
+%
+% Defenderme (pelear o huir)
+%
+% Si hay algun agente enemigo con mas de 0 de vida a una distancia
+% menor a 10m (distancia de ataque), defenderme de un posible ataque es
+% una meta
+%
 desire(defenderme_de([agent,UnAgente]), 'me estan atacando! debo decidir que hacer'):-
 
       property([agent,me],home,MiCasa),
@@ -258,9 +270,16 @@ desire(defenderme_de([agent,UnAgente]), 'me estan atacando! debo decidir que hac
       % Esta en rango de ataque?
       pos_in_attack_range(MiPos,SuPos).
 
-
+%_____________________________________________________________________
+%
+% Explorar
+%
+% Si recuerdo que vi nodos que todavia no conozco, explorarlos es una
+% meta
+%
 desire(explorar, 'quiero explorar todo el mapa!'):-
       nodosNoExplorados([]).
+
 
 % << TODO: DEFINIR OTROS DESEOS >>
 %
@@ -293,8 +312,9 @@ high_priority(rest, 'necesito descansar urgentemente D:'):-  % runs low of stami
 	St < 30, % running low of stamina...
 
 	once(at([inn, _HName], _Pos)). % se conoce al menos una posada
-
 */
+
+
 
 
 high_priority(defenderme_de([agent,UnAgente]), 'hay un enemigo cerca! debo decidir que hacer'):-
@@ -312,9 +332,9 @@ high_priority(defenderme_de([agent,UnAgente]), 'hay un enemigo cerca! debo decid
       atPos([agent,UnAgente],SuPos),
 
       % Esta en rango de ataque?
-      writeln('Hay alun enemigo cerca?'),
-      pos_in_attack_range(MiPos,SuPos),
-      writeln('Hay enemigos cerca!!!!!').
+      %writeln('Hay alun enemigo cerca?'),
+      pos_in_attack_range(MiPos,SuPos).
+      %writeln('Hay enemigos cerca!!!!!').
 
 high_priority(rest, 'necesito descansar'):-  % runs low of stamina
 
@@ -322,8 +342,6 @@ high_priority(rest, 'necesito descansar'):-  % runs low of stamina
 	St < 60, % running low of stamina...
 
 	once(at([inn, _HName], _Pos)). % se conoce al menos una posada
-
-
 
 
 % << TODO: DEFINIR >>
@@ -357,6 +375,16 @@ high_priority(rest, 'necesito descansar'):-  % runs low of stamina
 % viable, o agotarlas a todas.
 
 
+
+
+
+%_____________________________________________________________________
+%
+% Defenderme de un posible atacante
+%
+% Si existe un agente enemigo con mas de 0 de vida en rango de ataque
+% elijo defenderme
+%
 select_intention(defenderme_de(_Agente),' quiero defenderme!',_Desires):-
       property([agent,me],home,MiCasa),
       property([agent,UnAgente],home,CasaEnemigo), % Hay algun agente en el mapa?
@@ -378,7 +406,6 @@ select_intention(defenderme_de(_Agente),' quiero defenderme!',_Desires):-
 %
 % Dado que el nivel de stamina es relativamente bajo, se decide ir
 % descansar antes de abordar otro deseo.
-
 select_intention(rest, 'voy a recargar antes de encarar otro deseo', Desires):-
 	member(rest, Desires),
 	property([agent, me], life, St),
@@ -388,13 +415,11 @@ select_intention(rest, 'voy a recargar antes de encarar otro deseo', Desires):-
 
 %_____________________________________________________________________
 %
-% Conseguir una pocion que se halla tirado en el suelo
+% Conseguir una pocion que se halla tirada en el suelo
 %
-% De todos los posibles objetos tirados en el suelo que el agente desea
+% De todos las posibles pociones tiradas en el suelo que el agente desea
 % tener, selecciono como intención obtener aquel que se encuentra más
 % cerca.
-
-
 select_intention(get([potion,Pocion]), 'es el objeto más cercano de los que deseo obtener', Desires):-
 
 	findall(ObjPos,(member(get([potion,Pocion]), Desires),at([potion,Pocion], ObjPos)),Metas),
@@ -408,10 +433,9 @@ select_intention(get([potion,Pocion]), 'es el objeto más cercano de los que dese
 %
 % Conseguir un objeto mas cercano
 %
-% De todos los posibles objetos que el agente desea
-% tener, selecciono como intención obtener aquel que se encuentra más
-% cerca.
-
+% De todos los posibles objetos (en el piso o en una tumba)que el agente
+% desea tener, selecciono como intención obtener aquel que se encuentra
+% más cerca.
 select_intention(get(Obj), 'es el objeto mas cercano (en tumba o no)', Desires):-
 
 
@@ -440,6 +464,13 @@ select_intention(get(Obj), 'es el objeto mas cercano (en tumba o no)', Desires):
             at(Obj,ObjMasCercano)
         ).
 
+
+%_____________________________________________________________________
+%
+% Conseguir un tesoro en la Home enemiga
+%
+% Si existe un tesoro en la home enemiga y deseo obtenerlo
+%
 select_intention(get([gold,Tesoro]), 'es un tesoro en la base enemiga', Desires):-
       member(get([gold,Tesoro]),Desires),
       has([home,Casa],[gold,Tesoro]),
@@ -455,11 +486,12 @@ select_intention(depositarTesoro(Tesoro), 'quiero depositar todos mis tesoros!',
       has([agent,me],[gold,Tesoro]),
       member(depositarTesoro(Tesoro), Desires).
 
-
+%_____________________________________________________________________
+%
+% Explorar el mapa
+%
 select_intention(explorar,' voy a explorar todo el mapa',Desires):-
       member(explorar,Desires).
-
-
 
 %_____________________________________________________________________
 %
@@ -467,22 +499,28 @@ select_intention(explorar,' voy a explorar todo el mapa',Desires):-
 %
 % Si no existen objetos que deseen obtenerse, y existe el deseo de
 % descansar se decide ir a descansar.
-
+%
 select_intention(rest, 'no tengo otra cosa más interesante que hacer', Desires):-
 	member(rest, Desires).
 
 
-
+%_____________________________________________________________________
+%
+% Ir a casa
+%
+% Si no existen objetos que deseen obtenerse ni la necesidad de
+% descansar, entonces elijo ir a mi Home para defenderla de posibles
+% ataques
+%
 select_intention(ir_a_casa, 'no tengo otra que hacer, voy a defender mi casa', Desires):-
       member(ir_a_casa,Desires).
 
 %_____________________________________________________________________
 %
-% Move at random
-
+% Moverse aleatoriamente
+%
 select_intention(move_at_random, 'no tengo otra cosa más interesante que hacer', Desires):-
 	member(move_at_random, Desires).
-
 
 
 % << TODO: COMPLETAR DEFINICIóN >>
@@ -511,18 +549,19 @@ achieved(get(Obj)):-
 achieved(goto(Pos)):-
 	at([agent, me], Pos).
 
+% Ya no tengo el objeto que tire
 achieved(drop(Obj)):-
-      %at([agent, me], MiPos),
-      %at(Obj,MiPos).
       not(has([agent,me],Obj)).
 
+% Ya no tengo el objeto y ahora lo tiene mi Home
 achieved(depositarTesoro(Tesoro)):-
-      %not(has([agent,me],[gold,Tesoro])),
       property([agent,me],home,MiCasa),
       at([home,MiCasa],PosCasa),
       at([agent,me],PosCasa),
       has([home,MiCasa],[gold,Tesoro]).
 
+% Estoy en la posicion de la Entidad, mi ultima accion fue castear un
+% hechizo de apertura y ya no tengo mas a la pocion que use
 achieved(abrirEntidad(NombreE)):-
       at([Entidad,NombreE],Pos),
       Entidad \= agent,
@@ -533,16 +572,20 @@ achieved(abrirEntidad(NombreE)):-
 
       retract(has([agent,me],[potion,Pocion])).
 
+% Ya no estoy en rango de ataque del agente enemigo
 achieved(huir(Agente)):-
       atPos([agent,me],MiPos),
       atPos(Agente,PosEnemigo),
       not(pos_in_attack_range(MiPos,PosEnemigo)).
 
+% Mi ultima accion fue atacar al agente enemigo
 achieved(atacar(Agente)):-
       property([agent,me]
               ,lastAction
               ,[attack(Agente),_TiempoAccion]).
 
+% La vida del enemigo es 0, mi ultima accion fue castear un hechizo de
+% dormir y ya no tengo la pocion que use
 achieved(dormir(Agente,Pocion)):-
       property(Agente,life,HPEnemigo),
       HPEnemigo is 0,
@@ -551,14 +594,16 @@ achieved(dormir(Agente,Pocion)):-
               ,cast_spell( sleep(Agente,Pocion) ,_TiempoAccion)),
       retract(has([agent,me],Pocion)).
 
+% Me defendi de un agente si: lo ataque, o hui, o le lanze un hechizo de
+% dormir
 achieved(defenderse_de(Agente)):-
       achieved(atacar(Agente)) ;
       achieved(huir(Agente)) ;
       achieved(dormir(Agente,_Pocion)).
 
+% Explore todo el mapa si ya no hay nodos que no explore
 achieved(explorar):-
       nodosNoExplorados([]).
-
 
 % << TODO: COMPLETAR DEFINICIóN >>
 %
@@ -654,6 +699,7 @@ planning_and_execution(Action):-
 % si es deseable brindar soluciones alternativas.
 
 
+% De la lista de nodos no explorados, elijo uno aleatoriamente para ir
 planify(explorar,Plan):-
       nodosNoExplorados(Nodos),
       random_member(UnNodo,Nodos),
