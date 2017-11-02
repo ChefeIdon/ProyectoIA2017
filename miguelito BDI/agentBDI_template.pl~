@@ -226,6 +226,8 @@ desire(depositarTesoro(Tesoro), 'quiero depositar todos mis tesoros!'):-
       has([agent,me],[gold,Tesoro]).
 
 
+desire(ir_a_casa,'quiero defender mi casa!').
+
 %_____________________________________________________________________
 %
 % Move at Random
@@ -263,7 +265,7 @@ desire(move_at_random, 'quiero estar siempre en movimiento!').
 high_priority(rest, 'necesito descansar'):-  % runs low of stamina
 
 	property([agent, me], life, St),
-	St < 40, % running low of stamina...
+	St < 50, % running low of stamina...
 
 	once(at([inn, _HName], _Pos)). % se conoce al menos una posada
 
@@ -310,8 +312,68 @@ high_priority(rest, 'necesito descansar'):-  % runs low of stamina
 select_intention(rest, 'voy a recargar antes de encarar otro deseo', Desires):-
 	member(rest, Desires),
 	property([agent, me], life, St),
-	St < 70.
+	St < 75.
 
+
+%_____________________________________________________________________
+%
+% Conseguir un objeto en una tumba
+%
+% De todos los posibles objetos tirados en el suelo que el agente desea
+% tener, selecciono como intención obtener aquel que se encuentra más
+% cerca.
+
+select_intention(get(Obj), 'es el objeto mas cercano (en tumba o no)', Desires):-
+
+
+	findall(PosT,
+                (member(get(Obj), Desires), has([grave,Tumba], Obj),
+                 at([grave,Tumba],PosT))
+               ,PosTumbas),
+
+        findall(PosO,
+                (member(get(Obj), Desires), at(Obj,PosO))
+               ,PosObj),
+
+        append(PosObj,PosTumbas,PosMetas),
+
+        % Obtengo posiciones de todos las tumbas que tienen tesoros y tesoros en el piso.
+
+	buscar_plan_desplazamiento(PosMetas, _Plan, ObjMasCercano),
+
+	member(get(Obj), Desires),
+        %y ...
+        (
+             % Esta en una tumba
+            (has([grave,Tumba],Obj),at([grave,Tumba],ObjMasCercano) )
+            ; % O
+             % Esta en el piso
+            at(Obj,ObjMasCercano)
+        ).
+
+
+
+
+
+%_____________________________________________________________________
+%
+% Conseguir un objeto que se halla tirado en el suelo
+%
+% De todos los posibles objetos tirados en el suelo que el agente desea
+% tener, selecciono como intención obtener aquel que se encuentra más
+% cerca.
+/*
+
+select_intention(get(Obj), 'es el objeto más cercano de los que deseo obtener', Desires):-
+
+	findall(ObjPos,(member(get(Obj), Desires),at(Obj, ObjPos)),Metas),
+        % Obtengo posiciones de todos los objetos meta tirados en el suelo.
+
+	buscar_plan_desplazamiento(Metas, _Plan, CloserObjPos),
+	member(get(Obj), Desires),
+        at(Obj, CloserObjPos).
+
+*/
 
 
 %_____________________________________________________________________
@@ -326,102 +388,22 @@ select_intention(depositarTesoro(Tesoro), 'quiero depositar todos mis tesoros!',
 
 
 
-%_____________________________________________________________________
-%
-% Conseguir un objeto que se halla tirado en el suelo
-%
-% De todos los posibles objetos tirados en el suelo que el agente desea
-% tener, selecciono como intención obtener aquel que se encuentra más
-% cerca.
 
-select_intention(get(Obj), 'es el objeto más cercano de los que deseo obtener', Desires):-
-
-	findall(ObjPos,(member(get(Obj), Desires),at(Obj, ObjPos)),Metas),
-        % Obtengo posiciones de todos los objetos meta tirados en el suelo.
-
-	buscar_plan_desplazamiento(Metas, _Plan, CloserObjPos),
-	member(get(Obj), Desires),
-        at(Obj, CloserObjPos).
-
-
-%_____________________________________________________________________
-%
-% Conseguir un objeto en una tumba
-%
-% De todos los posibles objetos tirados en el suelo que el agente desea
-% tener, selecciono como intención obtener aquel que se encuentra más
-% cerca.
-
-select_intention(get(Obj), 'es el objeto en la tumba mas cercana de los que deseo obtener', Desires):-
-
-	findall(Pos,
-                (member(get(Obj), Desires), has([grave,Tumba], Obj),
-                 at([grave,Tumba],Pos))
-               ,PosTumbas),
-        % Obtengo posiciones de todos los objetos meta tirados en el suelo.
-
-	buscar_plan_desplazamiento(PosTumbas, _Plan, TumbaMasCercana),
-	member(get(Obj), Desires),
-        has([grave,Tumba],Obj),
-        at([grave,Tumba],TumbaMasCercana).
-
-
-
-/*
-
-%_____________________________________________________________________
-%
-% Conseguir una pocion que se halla tirado en el suelo
-%
-% De todos los posibles pociones tirados en el suelo que el agente desea
-% tener, selecciono como intención obtener aquel que se encuentra más
-% cerca.
-
-select_intention(get([potion,Pocion]), 'es la pocion más cercana de los que deseo obtener', Desires):-
-
-	findall(ObjPos,(member(get([potion,Pocion]), Desires),at(Obj, ObjPos)),Metas),
-        % Obtengo posiciones de todos los objetos meta tirados en el suelo.
-
-	buscar_plan_desplazamiento(Metas, _Plan, CloserObjPos),
-	member(get([potion,Pocion]), Desires),
-        at(Obj, CloserObjPos).
-
-
-
-
-%_____________________________________________________________________
-%
-% Conseguir un tesoro que se halla tirado en el suelo
-%
-% De todos los posibles tesoros tirados en el suelo que el agente desea
-% tener, selecciono como intención obtener aquel que se encuentra más
-% cerca.
-
-select_intention(get([gold,Tesoro]), 'es el tesoro más cercano de los que deseo obtener', Desires):-
-
-	findall(ObjPos,(member(get([gold,Tesoro]), Desires),at(Obj, ObjPos)),Metas),
-        % Obtengo posiciones de todos los objetos meta tirados en el suelo.
-
-	buscar_plan_desplazamiento(Metas, _Plan, CloserObjPos),
-	member(get([gold,Tesoro]), Desires),
-        at(Obj, CloserObjPos).
-
-
-*/
 
 %_____________________________________________________________________
 %
 % Rest
 %
 % Si no existen objetos que deseen obtenerse, y existe el deseo de
-% descansar (stamina por debajo de 100), se decide ir a descansar.
+% descansar se decide ir a descansar.
 
 select_intention(rest, 'no tengo otra cosa más interesante que hacer', Desires):-
 	member(rest, Desires).
 
 
 
-
+select_intention(ir_a_casa, 'no tengo otra que hacer, voy a defender mi casa', Desires):-
+      member(ir_a_casa,Desires).
 
 %_____________________________________________________________________
 %
@@ -459,9 +441,9 @@ achieved(goto(Pos)):-
 	at([agent, me], Pos).
 
 achieved(drop(Obj)):-
-      at([agent, me], MiPos),
-      at(Obj,MiPos).
-      %not(has([agent,me],Obj)).
+      %at([agent, me], MiPos),
+      %at(Obj,MiPos).
+      not(has([agent,me],Obj)).
 
 achieved(depositarTesoro(Tesoro)):-
       %not(has([agent,me],[gold,Tesoro])),
@@ -470,12 +452,13 @@ achieved(depositarTesoro(Tesoro)):-
       at([agent,me],PosCasa),
       has([home,MiCasa],[gold,Tesoro]).
 
-achieved(abrirTumba(Tumba)):-
-      at([grave,Tumba],Pos),
+achieved(abrirEntidad(NombreE)):-
+      at([Entidad,NombreE],Pos),
+      Entidad \= agent,
       at([agent,me],Pos),
       property([agent,me]
               ,lastAction
-              ,cast_spell( open([grave,Tumba],[potion,_Pocion]) ,_TiempoAccion)).
+              ,cast_spell( open([Entidad,NombreE],[potion,_Pocion]) ,_TiempoAccion)).
 
 
 
@@ -580,8 +563,14 @@ planify(get(Obj), Plan):- % Planificación para obtener de un objeto que yace en 
 	Plan = [goto(Pos), pickup(Obj)].
 
 planify(get(Obj),Plan):- % Planificación para obtener un objeto en una tumba
-      has([grave,Tumba],Obj),
-      Plan=[abrirTumba(Tumba),get(Obj)].
+      has([Entidad,NombreE],Obj),
+      Entidad \= agent,
+      Plan=[abrirEntidad(NombreE),get(Obj)].
+
+planify(ir_a_casa,Plan):- % Planificación para ir a la home y defender
+      property([agent,me],home,MiCasa),
+      at([home,MiCasa],PosCasa),
+      Plan=[goto(PosCasa)].
 
 
 planify(goto(PosDest), Plan):- % Planificación para desplazarse a un destino dado
@@ -591,10 +580,11 @@ planify(goto(PosDest), Plan):- % Planificación para desplazarse a un destino dad
 
 planify(rest, Plan):- % Planificación para desplazarse a un destino dado
 
-	at([inn, _H], PosH),  % Selecciona una posada para ir a descansar.
-				 % <<<CHOICE POINT>>> (Posibilidad de backtracking)
+	findall(Pos,at([inn, _H], Pos),Posadas),
 
-	Plan = [goto(PosH), stay].
+	buscar_plan_desplazamiento(Posadas,_Plan,PosadaMasCercana),
+
+	Plan = [goto(PosadaMasCercana), stay].
 
 
 planify(stay, [noop , stay]).                     % Planificación recursiva. En este caso permite repetir indefinidamente
@@ -609,11 +599,11 @@ planify(stay, [noop , stay]).                     % Planificación recursiva. En 
 
 planify(move_at_random, Plan):- % Planificación para moverse aleatoriamente
 
-	findall(Node, node(Node, _, _), PossibleDestPos),
+      findall(Nodo, node(Nodo,_Vector,_Vecinos), PossibleDestPos),
 
-	random_member(DestPos, PossibleDestPos), % Selecciona aleatoriamente una posición destino.
-				                 % <<<CHOICE POINT>>> (Posibilidad de backtracking)
-	Plan = [goto(DestPos)].
+      random_member(DestPos, PossibleDestPos),% Selecciona aleatoriamente una posición destino.
+				              % <<<CHOICE POINT>>> (Posibilidad de backtracking)
+      Plan = [goto(DestPos)].
 
 planify(drop(Obj),Plan):-
       has([agent,me],Obj),
@@ -628,16 +618,23 @@ planify(depositarTesoro(Tesoro),Plan):-
       Plan=[goto(PosCasa),drop([gold,Tesoro])].
 
 
-planify(abrirTumba(Tumba),Plan):- %Cuando tengo una pocion
-      at([grave,Tumba],PosTumba),
+planify(abrirEntidad(NombreE),Plan):- %Cuando tengo una pocion
+      at([Entidad,NombreE],Pos),
+      Entidad \= agent,
       has([agent,me],[potion,Pocion]),
-      Plan=[goto(PosTumba),cast_spell(open([grave,Tumba],[potion,Pocion]))].
+      Plan=[goto(Pos),cast_spell(open([Entidad,NombreE],[potion,Pocion]))].
 
-planify(abrirTumba(Tumba),Plan):- %Cuando no tengo una pocion
-      at([grave,Tumba],PosTumba),
-      not(has([agent,me],[potion,_AlgunaPocion])),
-      at([potion,Pocion],_Pos),
-      Plan=[get([potion,Pocion]),goto(PosTumba),cast_spell(open([grave,Tumba],[potion,Pocion]))].
+planify(abrirEntidad(NombreE),Plan):- %Cuando no tengo una pocion
+      at([Entidad,NombreE],PosE),
+      Entidad \= agent,
+      not(has([agent,me],[potion,Pocion])),
+
+      findall(Pos,at([potion, _Pot], Pos),Pociones),
+      buscar_plan_desplazamiento(Pociones,_Plan,PocionMasCercana),
+
+      at([potion,Pocion],PocionMasCercana),
+
+      Plan=[get([potion,PocionMasCercana]),goto(PosE),cast_spell(open([Entidad,NombreE],[potion,Pocion]))].
 
 
 
@@ -646,8 +643,30 @@ planify(abrirTumba(Tumba),Plan):- %Cuando no tengo una pocion
 % ACLARACIÓN: Puede modificarse la implementación actual de
 % planify/2, si se lo considera apropiado.
 
+%AGREGADO
+escribirCreencias(Archivo):-
+	tell(Archivo),
+	write("--------------Comienzo--------------"),nl,
+	forall(at(Ent,Nod), (write(at(Ent,Nod)),nl)),nl,
+	forall(atPos(Ent,Vec), (write(atPos(Ent,Vec)),nl)),nl,
+	forall(has(Ent1,Ent2), (write(has(Ent1,Ent2)),nl)),nl,
+	forall(entity_descr(Entidad,Desc), (write(entity_descr(Entidad,Desc)),nl)),nl,
+%	forall(node(Id,Pos,Ady), (write(node(Id,Pos,Ady)),nl)),nl,
+	write("-----------------Fin----------------"),nl.
+
+escribirNodos(Archivo):-
+	tell(Archivo),
+	write("--------------Comienzo--------------"),nl,
+	forall(node(Id,_Pos,_Ady), (write(Id),nl)),nl,
+	write("-----------------Fin----------------"),nl.
+
+cantNodos(N):-
+	findall(Id,node(Id,_Pos,_Ady),Lista),
+	longitud(Lista,N).
 
 
+longitud([],0).
+longitud([_|Xs],N):- longitud(Xs,K), N is K+1.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

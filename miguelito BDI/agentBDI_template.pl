@@ -323,18 +323,33 @@ select_intention(rest, 'voy a recargar antes de encarar otro deseo', Desires):-
 % tener, selecciono como intención obtener aquel que se encuentra más
 % cerca.
 
-select_intention(get(Obj), 'es el objeto en la tumba mas cercana de los que deseo obtener', Desires):-
+select_intention(get(Obj), 'es el objeto mas cercano (en tumba o no)', Desires):-
 
-	findall(Pos,
+
+	findall(PosT,
                 (member(get(Obj), Desires), has([grave,Tumba], Obj),
-                 at([grave,Tumba],Pos))
+                 at([grave,Tumba],PosT))
                ,PosTumbas),
-        % Obtengo posiciones de todos las tumbas que tienen tesoros.
 
-	buscar_plan_desplazamiento(PosTumbas, _Plan, TumbaMasCercana),
+        findall(PosO,
+                (member(get(Obj), Desires), at(Obj,PosO))
+               ,PosObj),
+
+        append(PosObj,PosTumbas,PosMetas),
+
+        % Obtengo posiciones de todos las tumbas que tienen tesoros y tesoros en el piso.
+
+	buscar_plan_desplazamiento(PosMetas, _Plan, ObjMasCercano),
+
 	member(get(Obj), Desires),
-        has([grave,Tumba],Obj),
-        at([grave,Tumba],TumbaMasCercana).
+        %y ...
+        (
+             % Esta en una tumba
+            (has([grave,Tumba],Obj),at([grave,Tumba],ObjMasCercano) )
+            ; % O
+             % Esta en el piso
+            at(Obj,ObjMasCercano)
+        ).
 
 
 
@@ -347,6 +362,7 @@ select_intention(get(Obj), 'es el objeto en la tumba mas cercana de los que dese
 % De todos los posibles objetos tirados en el suelo que el agente desea
 % tener, selecciono como intención obtener aquel que se encuentra más
 % cerca.
+/*
 
 select_intention(get(Obj), 'es el objeto más cercano de los que deseo obtener', Desires):-
 
@@ -357,7 +373,7 @@ select_intention(get(Obj), 'es el objeto más cercano de los que deseo obtener', 
 	member(get(Obj), Desires),
         at(Obj, CloserObjPos).
 
-
+*/
 
 
 %_____________________________________________________________________
@@ -551,7 +567,7 @@ planify(get(Obj),Plan):- % Planificación para obtener un objeto en una tumba
       Entidad \= agent,
       Plan=[abrirEntidad(NombreE),get(Obj)].
 
-planify(ir_a_casa,Plan):-
+planify(ir_a_casa,Plan):- % Planificación para ir a la home y defender
       property([agent,me],home,MiCasa),
       at([home,MiCasa],PosCasa),
       Plan=[goto(PosCasa)].
@@ -564,10 +580,11 @@ planify(goto(PosDest), Plan):- % Planificación para desplazarse a un destino dad
 
 planify(rest, Plan):- % Planificación para desplazarse a un destino dado
 
-	at([inn, _H], PosH),  % Selecciona una posada para ir a descansar.
-				 % <<<CHOICE POINT>>> (Posibilidad de backtracking)
+	findall(Pos,at([inn, _H], Pos),Posadas),
 
-	Plan = [goto(PosH), stay].
+	buscar_plan_desplazamiento(Posadas,_Plan,PosadaMasCercana),
+
+	Plan = [goto(PosadaMasCercana), stay].
 
 
 planify(stay, [noop , stay]).                     % Planificación recursiva. En este caso permite repetir indefinidamente
@@ -582,11 +599,11 @@ planify(stay, [noop , stay]).                     % Planificación recursiva. En 
 
 planify(move_at_random, Plan):- % Planificación para moverse aleatoriamente
 
-	findall(Node, node(Node, _, _), PossibleDestPos),
+      findall(Nodo, node(Nodo,_Vector,_Vecinos), PossibleDestPos),
 
-	random_member(DestPos, PossibleDestPos), % Selecciona aleatoriamente una posición destino.
-				                 % <<<CHOICE POINT>>> (Posibilidad de backtracking)
-	Plan = [goto(DestPos)].
+      random_member(DestPos, PossibleDestPos),% Selecciona aleatoriamente una posición destino.
+				              % <<<CHOICE POINT>>> (Posibilidad de backtracking)
+      Plan = [goto(DestPos)].
 
 planify(drop(Obj),Plan):-
       has([agent,me],Obj),
@@ -611,7 +628,12 @@ planify(abrirEntidad(NombreE),Plan):- %Cuando no tengo una pocion
       at([Entidad,NombreE],PosE),
       Entidad \= agent,
       not(has([agent,me],[potion,Pocion])),
-      at([potion,Pocion],_PosP),
+
+      findall(Pos,at([potion, _Pot], Pos),Pociones),
+      buscar_plan_desplazamiento(Pociones,_Plan,PocionMasCercana),
+
+      at([potion,Pocion],PocionMasCercana),
+
       Plan=[get([potion,Pocion]),goto(PosE),cast_spell(open([Entidad,NombreE],[potion,Pocion]))].
 
 
@@ -631,13 +653,13 @@ escribirCreencias(Archivo):-
 	forall(entity_descr(Entidad,Desc), (write(entity_descr(Entidad,Desc)),nl)),nl,
 %	forall(node(Id,Pos,Ady), (write(node(Id,Pos,Ady)),nl)),nl,
 	write("-----------------Fin----------------"),nl.
-	
+
 escribirNodos(Archivo):-
 	tell(Archivo),
 	write("--------------Comienzo--------------"),nl,
 	forall(node(Id,_Pos,_Ady), (write(Id),nl)),nl,
 	write("-----------------Fin----------------"),nl.
-	
+
 cantNodos(N):-
 	findall(Id,node(Id,_Pos,_Ady),Lista),
 	longitud(Lista,N).
@@ -645,6 +667,8 @@ cantNodos(N):-
 
 longitud([],0).
 longitud([_|Xs],N):- longitud(Xs,K), N is K+1.
+
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 % next_primitive_action(+Plan, -NextAction, -RemainingPlan)
